@@ -71,6 +71,7 @@ public class SecurityConfig {
                         .requestMatchers("/health/**").permitAll()
                         .requestMatchers("/test/**").permitAll()
                         .requestMatchers("/welcome/**").permitAll()
+                        .requestMatchers("/media/**").permitAll()
                         .requestMatchers("/api/").permitAll()
                         .requestMatchers("/api/links").permitAll()
                         .requestMatchers("/api-docs/**").permitAll()
