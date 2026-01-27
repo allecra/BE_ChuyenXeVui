@@ -1,31 +1,43 @@
 package com.example.ckdatveexe.shared.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ApiResponse {
+@Builder
+public class ApiResponse<T> {
     private boolean success;
     private String message;
-    private Object data;
+    private T data;
 
     public ApiResponse(boolean success, String message) {
         this.success = success;
         this.message = message;
     }
 
-    public static ApiResponse success(String message) {
-        return new ApiResponse(true, message);
+    public static <T> ApiResponse<T> success(String message) {
+        return ApiResponse.<T>builder()
+                .success(true)
+                .message(message)
+                .build();
     }
 
-    public static ApiResponse success(String message, Object data) {
-        return new ApiResponse(true, message, data);
+    public static <T> ApiResponse<T> success(String message, T data) {
+        return ApiResponse.<T>builder()
+                .success(true)
+                .message(message)
+                .data(data)
+                .build();
     }
 
-    public static ApiResponse error(String message) {
-        return new ApiResponse(false, message);
+    public static <T> ApiResponse<T> error(String message) {
+        return ApiResponse.<T>builder()
+                .success(false)
+                .message(message)
+                .build();
     }
 }
