@@ -35,6 +35,7 @@ public class DataInitializer implements CommandLineRunner {
             createRoleIfNotExists(RoleName.ROLE_ADMIN);
             createRoleIfNotExists(RoleName.ROLE_USER); // Đây sẽ là ID = 2
             createRoleIfNotExists(RoleName.ROLE_DIRECT_STATION);
+            createRoleIfNotExists(RoleName.ROLE_BUS_COMPANY);
 
             log.info("Role initialization completed - ROLE_USER should have ID: 2");
         } catch (Exception e) {

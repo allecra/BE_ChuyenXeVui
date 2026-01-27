@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Xác thực", description = "Các API quản lý đăng nhập, đăng xuất và xác thực người dùng")
+@Tag(name = "Auth", description = "Các API quản lý đăng nhập, đăng xuất và xác thực người dùng")
 public class AuthController {
 
     private final AuthService authService;

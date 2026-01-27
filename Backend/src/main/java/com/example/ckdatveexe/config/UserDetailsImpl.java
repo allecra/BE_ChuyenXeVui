@@ -26,6 +26,8 @@ public class UserDetailsImpl implements UserDetails {
 
     private Collection<? extends GrantedAuthority> authorities;
 
+    private User user; // Thêm User object
+
     public static UserDetailsImpl build(User user) {
         List<GrantedAuthority> authorities = user.getRoles().stream()
                 .map(role -> new SimpleGrantedAuthority(role.getRoleName().name()))
@@ -38,7 +40,8 @@ public class UserDetailsImpl implements UserDetails {
                 user.getEmail(),
                 user.getPhone(),
                 user.getPassword(),
-                authorities);
+                authorities,
+                user); // Thêm user object
     }
 
     @Override

@@ -73,20 +73,39 @@ public class EmailService {
         }
     }
 
-    public void sendRejectionNotification(String toEmail, String companyName, String reason) {
+    public void sendApprovalNotificationWithAccount(String toEmail, String companyName, String username,
+            String temporaryPassword) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setFrom(fromEmail);
             helper.setTo(toEmail);
-            helper.setSubject("Đăng ký nhà xe bị từ chối - CK DatVeXe");
-            helper.setText(buildRejectionNotificationContent(companyName, reason), true);
+            helper.setSubject("Đăng ký nhà xe được duyệt - Thông tin tài khoản - CK DatVeXe");
+            helper.setText(buildApprovalNotificationWithAccountContent(companyName, username, temporaryPassword), true);
 
             mailSender.send(message);
-            log.info("Rejection notification email sent successfully to: {}", toEmail);
+            log.info("Approval notification with account email sent successfully to: {}", toEmail);
         } catch (MessagingException e) {
-            log.error("Failed to send rejection notification email to: {}", toEmail, e);
+            log.error("Failed to send approval notification with account email to: {}", toEmail, e);
+            throw new RuntimeException("Failed to send email", e);
+        }
+    }
+
+    public void sendPasswordResetNotification(String toEmail, String companyName, String newPassword) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+            helper.setSubject("Mật khẩu mới cho tài khoản nhà xe - CK DatVeXe");
+            helper.setText(buildPasswordResetNotificationContent(companyName, newPassword), true);
+
+            mailSender.send(message);
+            log.info("Password reset notification email sent successfully to: {}", toEmail);
+        } catch (MessagingException e) {
+            log.error("Failed to send password reset notification email to: {}", toEmail, e);
             throw new RuntimeException("Failed to send email", e);
         }
     }
@@ -216,6 +235,124 @@ public class EmailService {
                 java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
     }
 
+    private String buildApprovalNotificationWithAccountContent(String companyName, String username,
+            String temporaryPassword) {
+        return String.format(
+                """
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <style>
+                                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                                .header { background: linear-gradient(135deg, #4caf50 0%%, #45a049 100%%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                                .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                                .success-box { background: #e8f5e8; padding: 20px; border-left: 4px solid #4caf50; margin: 20px 0; border-radius: 5px; }
+                                .account-box { background: #fff3cd; padding: 20px; border-left: 4px solid #ffc107; margin: 20px 0; border-radius: 5px; }
+                                .security-box { background: #ffebee; padding: 15px; border-left: 4px solid #f44336; margin: 20px 0; border-radius: 5px; }
+                                .next-steps { background: #e3f2fd; padding: 15px; border-left: 4px solid #2196f3; margin: 20px 0; border-radius: 5px; }
+                                .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+                                .logo { font-size: 24px; font-weight: bold; }
+                                .celebration { font-size: 48px; text-align: center; margin: 20px 0; }
+                                .credential { background: #f5f5f5; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 16px; margin: 10px 0; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="container">
+                                <div class="header">
+                                    <div class="logo">🚌 CK DatVeXe</div>
+                                    <h2>Chúc mừng! Tài khoản đã được tạo</h2>
+                                </div>
+                                <div class="content">
+                                    <div class="celebration">🎉</div>
+                                    <h3>Kính chào %s,</h3>
+
+                                    <div class="success-box">
+                                        <h4>✅ Đăng ký thành công!</h4>
+                                        <p>Đơn đăng ký nhà xe của bạn đã được <strong>duyệt thành công</strong>!</p>
+                                        <p><strong>Tên nhà xe:</strong> %s</p>
+                                        <p><strong>Thời gian duyệt:</strong> %s</p>
+                                    </div>
+
+                                    <div class="account-box">
+                                        <h4>🔑 Thông tin tài khoản đăng nhập</h4>
+                                        <p>Chúng tôi đã tạo tài khoản quản lý nhà xe cho bạn:</p>
+                                        <p><strong>Tên đăng nhập (Email):</strong></p>
+                                        <div class="credential">%s</div>
+                                        <p><strong>Mật khẩu tạm thời:</strong></p>
+                                        <div class="credential">%s</div>
+                                    </div>
+
+                                    <div class="security-box">
+                                        <h4>🔒 Bảo mật tài khoản</h4>
+                                        <p><strong>Quan trọng:</strong> Vui lòng đổi mật khẩu ngay sau lần đăng nhập đầu tiên để đảm bảo bảo mật tài khoản.</p>
+                                    </div>
+
+                                    <div class="next-steps">
+                                        <h4>📋 Các bước tiếp theo:</h4>
+                                        <ol>
+                                            <li><strong>Đăng nhập</strong> vào hệ thống với thông tin trên</li>
+                                            <li><strong>Đổi mật khẩu</strong> ngay lập tức</li>
+                                            <li><strong>Cập nhật thông tin</strong> chi tiết nhà xe</li>
+                                            <li><strong>Thêm xe</strong> và thiết lập sơ đồ ghế</li>
+                                            <li><strong>Tạo tuyến đường</strong> và lịch trình</li>
+                                            <li><strong>Bắt đầu</strong> bán vé trực tuyến</li>
+                                        </ol>
+                                    </div>
+
+                                    <p>Chào mừng bạn đến với gia đình <strong>CK DatVeXe</strong>! Chúng tôi sẵn sàng hỗ trợ bạn trong hành trình phát triển kinh doanh.</p>
+                                </div>
+                                <div class="footer">
+                                    <p>Trân trọng,<br><strong>Đội ngũ CK DatVeXe</strong></p>
+                                    <p>📧 Email: support@ckdatveexe.com | 📞 Hotline: 1900-xxxx</p>
+                                    <p><small>⚠️ Vui lòng không chia sẻ thông tin đăng nhập với bất kỳ ai</small></p>
+                                </div>
+                            </div>
+                        </body>
+                        </html>
+                        """,
+                companyName, companyName,
+                java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")),
+                username, temporaryPassword);
+    }
+
+    public void sendPasswordChangeNotification(String toEmail, String companyName) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+            helper.setSubject("Đổi mật khẩu thành công - CK DatVeXe");
+            helper.setText(buildPasswordChangeNotificationContent(companyName), true);
+
+            mailSender.send(message);
+            log.info("Password change notification email sent successfully to: {}", toEmail);
+        } catch (MessagingException e) {
+            log.error("Failed to send password change notification email to: {}", toEmail, e);
+            throw new RuntimeException("Failed to send email", e);
+        }
+    }
+
+    public void sendRejectionNotification(String toEmail, String companyName, String reason) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+            helper.setSubject("Đăng ký nhà xe bị từ chối - CK DatVeXe");
+            helper.setText(buildRejectionNotificationContent(companyName, reason), true);
+
+            mailSender.send(message);
+            log.info("Rejection notification email sent successfully to: {}", toEmail);
+        } catch (MessagingException e) {
+            log.error("Failed to send rejection notification email to: {}", toEmail, e);
+            throw new RuntimeException("Failed to send email", e);
+        }
+    }
+
     private String buildRejectionNotificationContent(String companyName, String reason) {
         return String.format(
                 """
@@ -279,5 +416,127 @@ public class EmailService {
                 companyName, companyName,
                 java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")),
                 reason != null ? reason : "Không đáp ứng yêu cầu");
+    }
+
+    private String buildPasswordResetNotificationContent(String companyName, String newPassword) {
+        return String.format(
+                """
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <style>
+                                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                                .header { background: linear-gradient(135deg, #ff9800 0%%, #f57c00 100%%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                                .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                                .password-box { background: #fff3cd; padding: 20px; border-left: 4px solid #ffc107; margin: 20px 0; border-radius: 5px; }
+                                .security-box { background: #ffebee; padding: 15px; border-left: 4px solid #f44336; margin: 20px 0; border-radius: 5px; }
+                                .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+                                .logo { font-size: 24px; font-weight: bold; }
+                                .credential { background: #f5f5f5; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 16px; margin: 10px 0; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="container">
+                                <div class="header">
+                                    <div class="logo">🚌 CK DatVeXe</div>
+                                    <h2>🔑 Mật khẩu mới</h2>
+                                </div>
+                                <div class="content">
+                                    <h3>Kính chào %s,</h3>
+                                    <p>Chúng tôi đã tạo mật khẩu mới cho tài khoản nhà xe của bạn theo yêu cầu.</p>
+
+                                    <div class="password-box">
+                                        <h4>🔑 Mật khẩu mới của bạn</h4>
+                                        <p><strong>Mật khẩu:</strong></p>
+                                        <div class="credential">%s</div>
+                                        <p><strong>Thời gian tạo:</strong> %s</p>
+                                    </div>
+
+                                    <div class="security-box">
+                                        <h4>🔒 Lưu ý bảo mật quan trọng</h4>
+                                        <ul>
+                                            <li><strong>Đăng nhập ngay</strong> và đổi mật khẩu mới</li>
+                                            <li><strong>Không chia sẻ</strong> mật khẩu này với bất kỳ ai</li>
+                                            <li><strong>Sử dụng mật khẩu mạnh</strong> khi thay đổi</li>
+                                            <li><strong>Đăng xuất</strong> sau khi sử dụng xong</li>
+                                        </ul>
+                                    </div>
+
+                                    <p>Nếu bạn không yêu cầu reset mật khẩu, vui lòng liên hệ với chúng tôi ngay lập tức.</p>
+                                </div>
+                                <div class="footer">
+                                    <p>Trân trọng,<br><strong>Đội ngũ CK DatVeXe</strong></p>
+                                    <p>📧 Email: support@ckdatveexe.com | 📞 Hotline: 1900-xxxx</p>
+                                    <p><small>⚠️ Email này chứa thông tin bảo mật, vui lòng xóa sau khi đã đổi mật khẩu</small></p>
+                                </div>
+                            </div>
+                        </body>
+                        </html>
+                        """,
+                companyName, newPassword,
+                java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
+    }
+
+    private String buildPasswordChangeNotificationContent(String companyName) {
+        return String.format(
+                """
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <style>
+                                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                                .header { background: linear-gradient(135deg, #4caf50 0%%, #45a049 100%%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                                .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                                .success-box { background: #e8f5e8; padding: 20px; border-left: 4px solid #4caf50; margin: 20px 0; border-radius: 5px; }
+                                .security-box { background: #e3f2fd; padding: 15px; border-left: 4px solid #2196f3; margin: 20px 0; border-radius: 5px; }
+                                .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+                                .logo { font-size: 24px; font-weight: bold; }
+                                .celebration { font-size: 48px; text-align: center; margin: 20px 0; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="container">
+                                <div class="header">
+                                    <div class="logo">🚌 CK DatVeXe</div>
+                                    <h2>🔐 Đổi mật khẩu thành công</h2>
+                                </div>
+                                <div class="content">
+                                    <div class="celebration">✅</div>
+                                    <h3>Kính chào %s,</h3>
+
+                                    <div class="success-box">
+                                        <h4>🎉 Đổi mật khẩu thành công!</h4>
+                                        <p>Mật khẩu tài khoản nhà xe của bạn đã được thay đổi thành công.</p>
+                                        <p><strong>Thời gian thay đổi:</strong> %s</p>
+                                        <p><strong>Địa chỉ IP:</strong> [Được ẩn vì lý do bảo mật]</p>
+                                    </div>
+
+                                    <div class="security-box">
+                                        <h4>🔒 Lưu ý bảo mật</h4>
+                                        <ul>
+                                            <li><strong>Nếu bạn không thực hiện thay đổi này</strong>, vui lòng liên hệ với chúng tôi ngay lập tức</li>
+                                            <li><strong>Đăng xuất</strong> khỏi tất cả thiết bị và đăng nhập lại</li>
+                                            <li><strong>Không chia sẻ</strong> mật khẩu mới với bất kỳ ai</li>
+                                            <li><strong>Sử dụng mật khẩu mạnh</strong> và thay đổi định kỳ</li>
+                                        </ul>
+                                    </div>
+
+                                    <p>Cảm ơn bạn đã sử dụng dịch vụ của <strong>CK DatVeXe</strong>. Chúng tôi luôn đặt bảo mật tài khoản của bạn lên hàng đầu.</p>
+                                </div>
+                                <div class="footer">
+                                    <p>Trân trọng,<br><strong>Đội ngũ CK DatVeXe</strong></p>
+                                    <p>📧 Email: support@ckdatveexe.com | 📞 Hotline: 1900-xxxx</p>
+                                    <p><small>🔐 Email này được gửi tự động để thông báo về thay đổi bảo mật</small></p>
+                                </div>
+                            </div>
+                        </body>
+                        </html>
+                        """,
+                companyName,
+                java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
     }
 }

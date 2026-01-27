@@ -1,7 +1,10 @@
 package com.example.ckdatveexe.shared.entity;
 
 public enum SeatType {
-    LUXURY,
+    NORMAL,
     VIP,
+    SLEEPER_LOWER,
+    SLEEPER_UPPER,
+    LUXURY,
     STANDARD
 }
