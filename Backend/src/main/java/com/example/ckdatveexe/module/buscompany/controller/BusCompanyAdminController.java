@@ -437,4 +437,61 @@ public class BusCompanyAdminController {
                                                         .build());
                 }
         }
+
+        @DeleteMapping("/{companyId}")
+        @Operation(summary = "Xóa nhà xe", description = "Xóa nhà xe (xóa cứng hoặc mềm) - dành cho admin")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<Void>> deleteBusCompany(
+                        @PathVariable Integer companyId,
+                        @RequestBody(required = false) com.example.ckdatveexe.module.buscompany.dto.DeleteBusCompanyRequest request,
+                        Authentication authentication) {
+
+                log.info("👑 [BUS COMPANY ADMIN] DELETE /api/admin/bus-company/{} - Delete bus company", companyId);
+                log.info("🔐 [BUS COMPANY ADMIN] User: {}, Authorities: {}",
+                                authentication.getName(), authentication.getAuthorities());
+
+                try {
+                        if (request == null) {
+                                request = new com.example.ckdatveexe.module.buscompany.dto.DeleteBusCompanyRequest();
+                        }
+
+                        busCompanyService.deleteBusCompanyByAdmin(companyId, request.isHardDelete());
+
+                        String message = request.isHardDelete()
+                                        ? "Xóa nhà xe vĩnh viễn thành công"
+                                        : "Tạm khóa tài khoản nhà xe thành công";
+
+                        log.info("✅ [BUS COMPANY ADMIN] 200 OK - Bus company {} successfully: {}",
+                                        request.isHardDelete() ? "hard deleted" : "soft deleted", companyId);
+
+                        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                                        .success(true)
+                                        .message(message)
+                                        .build());
+                } catch (ResourceNotFoundException e) {
+                        log.warn("🔍 [BUS COMPANY ADMIN] 404 NOT_FOUND - Bus company not found for deletion: {}",
+                                        companyId);
+                        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                        .body(ApiResponse.<Void>builder()
+                                                        .success(false)
+                                                        .message("Nhà xe không tồn tại")
+                                                        .build());
+                } catch (IllegalArgumentException e) {
+                        log.error("❌ [BUS COMPANY ADMIN] 400 BAD_REQUEST - Invalid delete request for company {}: {}",
+                                        companyId, e.getMessage());
+                        return ResponseEntity.badRequest()
+                                        .body(ApiResponse.<Void>builder()
+                                                        .success(false)
+                                                        .message("Yêu cầu xóa không hợp lệ: " + e.getMessage())
+                                                        .build());
+                } catch (Exception e) {
+                        log.error("💥 [BUS COMPANY ADMIN] 500 INTERNAL_SERVER_ERROR - Failed to delete company: {}",
+                                        companyId, e);
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                        .body(ApiResponse.<Void>builder()
+                                                        .success(false)
+                                                        .message("Lỗi hệ thống khi xóa nhà xe")
+                                                        .build());
+                }
+        }
 }
