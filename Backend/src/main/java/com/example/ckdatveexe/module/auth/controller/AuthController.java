@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -26,9 +27,11 @@ public class AuthController {
 
     @PostMapping("/login")
     @Operation(summary = "Đăng nhập", description = "Xác thực người dùng và trả về access token và refresh token")
-    public ResponseEntity<ApiResponse> authenticateUser(
+    public ResponseEntity<ApiResponse<AuthResponse>> authenticateUser(
             @Valid @RequestBody LoginRequest loginRequest,
             HttpServletResponse response) {
+
+        log.info("🔐 [AUTH] POST /auth/login - Login attempt for email: {}", loginRequest.getEmail());
 
         try {
             AuthResponse authResponse = authService.authenticateUser(loginRequest);
@@ -49,10 +52,15 @@ public class AuthController {
             refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60); // 7 ngày
             response.addCookie(refreshTokenCookie);
 
+            log.info("✅ [AUTH] 200 OK - Login successful for email: {}", loginRequest.getEmail());
             return ResponseEntity.ok(
-                    ApiResponse.success("Đăng nhập thành công", authResponse));
+                    ApiResponse.<AuthResponse>builder()
+                            .success(true)
+                            .message("Đăng nhập thành công")
+                            .data(authResponse)
+                            .build());
         } catch (RuntimeException e) {
-            log.error("Đăng nhập thất bại với email: {} - Exception type: {} - Message: {}",
+            log.error("❌ [AUTH] 400 BAD_REQUEST - Login failed for email: {} - Exception: {} - Message: {}",
                     loginRequest.getEmail(), e.getClass().getSimpleName(), e.getMessage());
 
             String errorMessage;
@@ -77,35 +85,50 @@ public class AuthController {
             }
 
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error(errorMessage));
+                    .body(ApiResponse.<AuthResponse>builder()
+                            .success(false)
+                            .message(errorMessage)
+                            .build());
         } catch (Exception e) {
-            log.error("Lỗi không mong muốn khi đăng nhập: {}", loginRequest.getEmail(), e);
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Đã xảy ra lỗi. Vui lòng thử lại sau"));
+            log.error("💥 [AUTH] 500 INTERNAL_SERVER_ERROR - Unexpected error during login for email: {}",
+                    loginRequest.getEmail(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.<AuthResponse>builder()
+                            .success(false)
+                            .message("Đã xảy ra lỗi. Vui lòng thử lại sau")
+                            .build());
         }
     }
 
     @PostMapping("/register")
     @Operation(summary = "Đăng ký", description = "Tạo tài khoản người dùng mới")
-    public ResponseEntity<ApiResponse> registerUser(
+    public ResponseEntity<ApiResponse<Object>> registerUser(
             @Valid @RequestBody RegisterRequest signUpRequest) {
 
+        log.info("📝 [AUTH] POST /auth/register - Registration attempt for email: {}", signUpRequest.getEmail());
+
         try {
-            ApiResponse response = authService.registerUser(signUpRequest);
-            return ResponseEntity.ok(response);
+            ApiResponse<Object> response = authService.registerUser(signUpRequest);
+            log.info("✅ [AUTH] 201 CREATED - Registration successful for email: {}", signUpRequest.getEmail());
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (Exception e) {
-            log.error("Đăng ký thất bại với email: {}", signUpRequest.getEmail(), e);
+            log.error("❌ [AUTH] 400 BAD_REQUEST - Registration failed for email: {}", signUpRequest.getEmail(), e);
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Đăng ký thất bại: " + e.getMessage()));
+                    .body(ApiResponse.<Object>builder()
+                            .success(false)
+                            .message("Đăng ký thất bại: " + e.getMessage())
+                            .build());
         }
     }
 
     @PostMapping("/refresh")
     @Operation(summary = "Làm mới access token", description = "Tạo access token mới bằng refresh token")
-    public ResponseEntity<ApiResponse> refreshToken(
+    public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(
             @CookieValue(name = "refreshToken", required = false) String refreshTokenFromCookie,
             @RequestBody(required = false) RefreshTokenRequest request,
             HttpServletResponse response) {
+
+        log.info("🔄 [AUTH] POST /auth/refresh - Token refresh attempt");
 
         try {
             String refreshToken = refreshTokenFromCookie;
@@ -114,8 +137,12 @@ public class AuthController {
             }
 
             if (refreshToken == null) {
+                log.warn("❌ [AUTH] 400 BAD_REQUEST - Missing refresh token");
                 return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("Thiếu refresh token"));
+                        .body(ApiResponse.<AuthResponse>builder()
+                                .success(false)
+                                .message("Thiếu refresh token")
+                                .build());
             }
 
             RefreshTokenRequest refreshRequest = new RefreshTokenRequest();
@@ -130,25 +157,36 @@ public class AuthController {
             accessTokenCookie.setMaxAge(24 * 60 * 60);
             response.addCookie(accessTokenCookie);
 
+            log.info("✅ [AUTH] 200 OK - Token refresh successful");
             return ResponseEntity.ok(
-                    ApiResponse.success("Làm mới token thành công", authResponse));
+                    ApiResponse.<AuthResponse>builder()
+                            .success(true)
+                            .message("Làm mới token thành công")
+                            .data(authResponse)
+                            .build());
         } catch (Exception e) {
-            log.error("Làm mới token thất bại", e);
+            log.error("❌ [AUTH] 400 BAD_REQUEST - Token refresh failed", e);
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Refresh token không hợp lệ hoặc đã hết hạn"));
+                    .body(ApiResponse.<AuthResponse>builder()
+                            .success(false)
+                            .message("Refresh token không hợp lệ hoặc đã hết hạn")
+                            .build());
         }
     }
 
     @PostMapping("/logout")
     @Operation(summary = "Đăng xuất", description = "Đăng xuất người dùng và vô hiệu hóa token")
-    public ResponseEntity<ApiResponse> logoutUser(
+    public ResponseEntity<ApiResponse<Object>> logoutUser(
             Authentication authentication,
             HttpServletResponse response) {
+
+        log.info("🚪 [AUTH] POST /auth/logout - Logout attempt");
 
         try {
             if (authentication != null) {
                 UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
                 authService.logout(userDetails.getEmail());
+                log.info("👤 [AUTH] User logged out: {}", userDetails.getEmail());
             }
 
             Cookie accessTokenCookie = new Cookie("accessToken", null);
@@ -165,68 +203,101 @@ public class AuthController {
             refreshTokenCookie.setMaxAge(0);
             response.addCookie(refreshTokenCookie);
 
+            log.info("✅ [AUTH] 200 OK - Logout successful");
             return ResponseEntity.ok(
-                    ApiResponse.success("Đăng xuất thành công"));
+                    ApiResponse.<Object>builder()
+                            .success(true)
+                            .message("Đăng xuất thành công")
+                            .build());
         } catch (Exception e) {
-            log.error("Đăng xuất thất bại", e);
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Đăng xuất thất bại"));
+            log.error("💥 [AUTH] 500 INTERNAL_SERVER_ERROR - Logout failed", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.<Object>builder()
+                            .success(false)
+                            .message("Đăng xuất thất bại")
+                            .build());
         }
     }
 
     @PostMapping("/forgot-password")
     @Operation(summary = "Quên mật khẩu", description = "Gửi mã xác thực (OTP) đặt lại mật khẩu qua email")
-    public ResponseEntity<ApiResponse> forgotPassword(
+    public ResponseEntity<ApiResponse<Object>> forgotPassword(
             @Valid @RequestBody ForgotPasswordRequest request) {
 
+        log.info("🔑 [AUTH] POST /auth/forgot-password - Forgot password request for email: {}", request.getEmail());
+
         try {
-            ApiResponse response = authService.forgotPassword(request);
+            ApiResponse<Object> response = authService.forgotPassword(request);
+            log.info("✅ [AUTH] 200 OK - Forgot password email sent to: {}", request.getEmail());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Quên mật khẩu thất bại với email: {}", request.getEmail(), e);
+            log.error("❌ [AUTH] 400 BAD_REQUEST - Forgot password failed for email: {}", request.getEmail(), e);
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error(e.getMessage()));
+                    .body(ApiResponse.<Object>builder()
+                            .success(false)
+                            .message(e.getMessage())
+                            .build());
         }
     }
 
     @PostMapping("/verify-otp")
     @Operation(summary = "Xác thực mã OTP", description = "Xác thực mã OTP được gửi qua email để đặt lại mật khẩu")
-    public ResponseEntity<ApiResponse> verifyOtp(
+    public ResponseEntity<ApiResponse<Object>> verifyOtp(
             @Valid @RequestBody VerifyOtpRequest request) {
 
+        log.info("🔢 [AUTH] POST /auth/verify-otp - OTP verification attempt");
+
         try {
-            ApiResponse response = authService.verifyOtp(request);
+            ApiResponse<Object> response = authService.verifyOtp(request);
+            log.info("✅ [AUTH] 200 OK - OTP verification successful");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Xác thực OTP thất bại với OTP: {} - Lỗi: {}", request.getOtp(), e.getMessage());
+            log.error("❌ [AUTH] 400 BAD_REQUEST - OTP verification failed for OTP: {} - Error: {}",
+                    request.getOtp(), e.getMessage());
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error(e.getMessage()));
+                    .body(ApiResponse.<Object>builder()
+                            .success(false)
+                            .message(e.getMessage())
+                            .build());
         }
     }
 
     @PostMapping("/set-new-password")
     @Operation(summary = "Đặt mật khẩu mới", description = "Đặt mật khẩu mới sau khi xác thực OTP thành công")
-    public ResponseEntity<ApiResponse> setNewPassword(
+    public ResponseEntity<ApiResponse<Object>> setNewPassword(
             @Valid @RequestBody NewPasswordRequest request) {
 
+        log.info("🔐 [AUTH] POST /auth/set-new-password - Set new password attempt");
+
         try {
-            ApiResponse response = authService.setNewPassword(request);
+            ApiResponse<Object> response = authService.setNewPassword(request);
+            log.info("✅ [AUTH] 200 OK - New password set successfully");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Đặt mật khẩu mới thất bại với OTP: {} - Lỗi: {}", request.getOtp(), e.getMessage());
+            log.error("❌ [AUTH] 400 BAD_REQUEST - Set new password failed for OTP: {} - Error: {}",
+                    request.getOtp(), e.getMessage());
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error(e.getMessage()));
+                    .body(ApiResponse.<Object>builder()
+                            .success(false)
+                            .message(e.getMessage())
+                            .build());
         }
     }
 
     @GetMapping("/me")
     @Operation(summary = "Thông tin người dùng hiện tại", description = "Lấy thông tin người dùng đang đăng nhập")
-    public ResponseEntity<ApiResponse> getCurrentUser(Authentication authentication) {
+    public ResponseEntity<ApiResponse<AuthResponse.UserInfo>> getCurrentUser(Authentication authentication) {
+
+        log.info("👤 [AUTH] GET /auth/me - Get current user info");
 
         try {
             if (authentication == null) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("Người dùng chưa đăng nhập"));
+                log.warn("❌ [AUTH] 401 UNAUTHORIZED - User not authenticated");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.<AuthResponse.UserInfo>builder()
+                                .success(false)
+                                .message("Người dùng chưa đăng nhập")
+                                .build());
             }
 
             UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
@@ -243,12 +314,20 @@ public class AuthController {
                     "ACTIVE",
                     java.time.LocalDateTime.now());
 
+            log.info("✅ [AUTH] 200 OK - User info retrieved for: {}", userDetails.getEmail());
             return ResponseEntity.ok(
-                    ApiResponse.success("Lấy thông tin người dùng thành công", userInfo));
+                    ApiResponse.<AuthResponse.UserInfo>builder()
+                            .success(true)
+                            .message("Lấy thông tin người dùng thành công")
+                            .data(userInfo)
+                            .build());
         } catch (Exception e) {
-            log.error("Không thể lấy thông tin người dùng", e);
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Lỗi khi lấy thông tin người dùng"));
+            log.error("💥 [AUTH] 500 INTERNAL_SERVER_ERROR - Failed to get user info", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.<AuthResponse.UserInfo>builder()
+                            .success(false)
+                            .message("Lỗi khi lấy thông tin người dùng")
+                            .build());
         }
     }
 }

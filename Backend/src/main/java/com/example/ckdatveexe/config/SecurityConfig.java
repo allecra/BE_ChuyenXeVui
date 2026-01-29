@@ -64,22 +64,19 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Chỉ cho phép authentication endpoints và documentation
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/public/**").permitAll()
-                        .requestMatchers("/api/user/buses/**").permitAll()
-                        .requestMatchers("/api/user/bus-companies/**").permitAll()
-                        .requestMatchers("/api/health/**").permitAll()
-                        .requestMatchers("/health/**").permitAll()
-                        .requestMatchers("/test/**").permitAll()
-                        .requestMatchers("/welcome/**").permitAll()
-                        .requestMatchers("/media/**").permitAll()
-                        .requestMatchers("/api/").permitAll()
-                        .requestMatchers("/api/links").permitAll()
+                        .requestMatchers("/api/public/**").permitAll() // Chỉ cho đăng ký nhà xe
                         .requestMatchers("/api-docs/**").permitAll()
                         .requestMatchers("/swagger-ui/**").permitAll()
                         .requestMatchers("/swagger-ui.html").permitAll()
                         .requestMatchers("/v3/api-docs/**").permitAll()
+                        // TẤT CẢ API KHÁC ĐỀU YÊU CẦU AUTHENTICATION
+                        .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers("/api/bus-company/**").hasAuthority("ROLE_BUS_COMPANY")
+                        .requestMatchers("/api/user/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN", "ROLE_BUS_COMPANY")
+                        .requestMatchers("/media/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN", "ROLE_BUS_COMPANY")
                         .anyRequest().authenticated());
 
         http.authenticationProvider(authenticationProvider());

@@ -539,4 +539,157 @@ public class EmailService {
                 companyName,
                 java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
     }
+
+    // New methods for bus company admin notifications
+
+    public void sendCompanyUpdateNotification(String toEmail, String companyName, String updateMessage) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+            helper.setSubject("Thông tin nhà xe được cập nhật - CK DatVeXe");
+            helper.setText(buildCompanyUpdateNotificationContent(companyName, updateMessage), true);
+
+            mailSender.send(message);
+            log.info("Company update notification email sent successfully to: {}", toEmail);
+        } catch (MessagingException e) {
+            log.error("Failed to send company update notification email to: {}", toEmail, e);
+            throw new RuntimeException("Failed to send email", e);
+        }
+    }
+
+    public void sendAccountRestorationNotification(String toEmail, String companyName) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+            helper.setSubject("Tài khoản nhà xe được khôi phục - CK DatVeXe");
+            helper.setText(buildAccountRestorationNotificationContent(companyName), true);
+
+            mailSender.send(message);
+            log.info("Account restoration notification email sent successfully to: {}", toEmail);
+        } catch (MessagingException e) {
+            log.error("Failed to send account restoration notification email to: {}", toEmail, e);
+            throw new RuntimeException("Failed to send email", e);
+        }
+    }
+
+    private String buildCompanyUpdateNotificationContent(String companyName, String updateMessage) {
+        return String.format(
+                """
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <style>
+                                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                                .header { background: linear-gradient(135deg, #2196f3 0%%, #1976d2 100%%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                                .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                                .update-box { background: #e3f2fd; padding: 20px; border-left: 4px solid #2196f3; margin: 20px 0; border-radius: 5px; }
+                                .info-box { background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0; border-radius: 5px; }
+                                .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+                                .logo { font-size: 24px; font-weight: bold; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="container">
+                                <div class="header">
+                                    <div class="logo">🚌 CK DatVeXe</div>
+                                    <h2>📝 Thông báo cập nhật</h2>
+                                </div>
+                                <div class="content">
+                                    <h3>Kính chào %s,</h3>
+
+                                    <div class="update-box">
+                                        <h4>📋 Thông tin cập nhật</h4>
+                                        <p><strong>Tên nhà xe:</strong> %s</p>
+                                        <p><strong>Thời gian cập nhật:</strong> %s</p>
+                                        <p><strong>Nội dung:</strong> %s</p>
+                                    </div>
+
+                                    <div class="info-box">
+                                        <h4>ℹ️ Lưu ý</h4>
+                                        <p>Thông tin nhà xe của bạn đã được cập nhật trong hệ thống. Vui lòng đăng nhập để xem chi tiết các thay đổi.</p>
+                                    </div>
+
+                                    <p>Nếu bạn có bất kỳ thắc mắc nào về việc cập nhật này, vui lòng liên hệ với đội ngũ hỗ trợ của chúng tôi.</p>
+                                </div>
+                                <div class="footer">
+                                    <p>Trân trọng,<br><strong>Đội ngũ CK DatVeXe</strong></p>
+                                    <p>📧 Email: support@ckdatveexe.com | 📞 Hotline: 1900-xxxx</p>
+                                </div>
+                            </div>
+                        </body>
+                        </html>
+                        """,
+                companyName, companyName,
+                java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")),
+                updateMessage);
+    }
+
+    private String buildAccountRestorationNotificationContent(String companyName) {
+        return String.format(
+                """
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <style>
+                                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                                .header { background: linear-gradient(135deg, #4caf50 0%%, #45a049 100%%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                                .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                                .success-box { background: #e8f5e8; padding: 20px; border-left: 4px solid #4caf50; margin: 20px 0; border-radius: 5px; }
+                                .next-steps { background: #e3f2fd; padding: 15px; border-left: 4px solid #2196f3; margin: 20px 0; border-radius: 5px; }
+                                .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+                                .logo { font-size: 24px; font-weight: bold; }
+                                .celebration { font-size: 48px; text-align: center; margin: 20px 0; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="container">
+                                <div class="header">
+                                    <div class="logo">🚌 CK DatVeXe</div>
+                                    <h2>🎉 Tài khoản được khôi phục</h2>
+                                </div>
+                                <div class="content">
+                                    <div class="celebration">✅</div>
+                                    <h3>Kính chào %s,</h3>
+
+                                    <div class="success-box">
+                                        <h4>🎉 Tài khoản đã được khôi phục!</h4>
+                                        <p>Tài khoản nhà xe của bạn đã được khôi phục thành công.</p>
+                                        <p><strong>Tên nhà xe:</strong> %s</p>
+                                        <p><strong>Thời gian khôi phục:</strong> %s</p>
+                                        <p><strong>Trạng thái:</strong> Hoạt động</p>
+                                    </div>
+
+                                    <div class="next-steps">
+                                        <h4>📋 Bạn có thể làm gì tiếp theo?</h4>
+                                        <ul>
+                                            <li><strong>Đăng nhập</strong> vào hệ thống quản lý</li>
+                                            <li><strong>Kiểm tra</strong> thông tin nhà xe</li>
+                                            <li><strong>Cập nhật</strong> thông tin nếu cần thiết</li>
+                                            <li><strong>Tiếp tục</strong> hoạt động kinh doanh</li>
+                                        </ul>
+                                    </div>
+
+                                    <p>Chào mừng bạn trở lại với <strong>CK DatVeXe</strong>! Chúng tôi rất vui khi được phục vụ bạn tiếp tục.</p>
+                                </div>
+                                <div class="footer">
+                                    <p>Trân trọng,<br><strong>Đội ngũ CK DatVeXe</strong></p>
+                                    <p>📧 Email: support@ckdatveexe.com | 📞 Hotline: 1900-xxxx</p>
+                                </div>
+                            </div>
+                        </body>
+                        </html>
+                        """,
+                companyName, companyName,
+                java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
+    }
 }
