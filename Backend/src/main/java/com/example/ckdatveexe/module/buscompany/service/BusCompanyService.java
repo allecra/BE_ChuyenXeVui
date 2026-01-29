@@ -517,4 +517,182 @@ public class BusCompanyService {
         response.setColumnNumber(seat.getColumnNumber());
         return response;
     }
+
+    // New methods for BusCompanyAdminController
+
+    public Page<BusCompanyResponse> getAllBusCompanies(BusSearchRequest request) {
+        Pageable pageable = createPageable(request);
+        Page<BusCompany> companies;
+
+        if (request.getKeyword() != null && !request.getKeyword().trim().isEmpty()) {
+            companies = busCompanyRepository.searchByIdOrName(request.getKeyword().trim(), pageable);
+        } else {
+            companies = busCompanyRepository.findAll(pageable);
+        }
+
+        return companies.map(this::convertToResponse);
+    }
+
+    @Transactional
+    public BusCompanyResponse updateBusCompanyByAdmin(Integer companyId, BusCompanyUpdateRequest request) {
+        BusCompany busCompany = busCompanyRepository.findById(companyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhà xe với ID: " + companyId));
+
+        // Update company info
+        if (request.getCompanyName() != null && !request.getCompanyName().trim().isEmpty()) {
+            if (!busCompany.getCompanyName().equalsIgnoreCase(request.getCompanyName()) &&
+                    busCompanyRepository.existsByCompanyNameIgnoreCase(request.getCompanyName())) {
+                throw new IllegalArgumentException("Tên công ty đã tồn tại");
+            }
+            busCompany.setCompanyName(request.getCompanyName());
+        }
+
+        if (request.getImage() != null) {
+            busCompany.setImage(request.getImage());
+        }
+
+        if (request.getDescriptions() != null) {
+            busCompany.setDescriptions(request.getDescriptions());
+        }
+
+        BusCompany updatedCompany = busCompanyRepository.save(busCompany);
+
+        // Send email notification to company
+        try {
+            // Find user associated with this company
+            User companyUser = userRepository.findByBusCompanyId(companyId)
+                    .stream()
+                    .findFirst()
+                    .orElse(null);
+
+            if (companyUser != null) {
+                emailService.sendCompanyUpdateNotification(
+                        companyUser.getEmail(),
+                        busCompany.getCompanyName(),
+                        "Thông tin nhà xe của bạn đã được cập nhật bởi quản trị viên");
+            }
+        } catch (Exception e) {
+            log.error("Lỗi khi gửi email thông báo cập nhật nhà xe: ", e);
+        }
+
+        return convertToResponse(updatedCompany);
+    }
+
+    public Page<BusCompanyResponse> searchBusCompanies(BusSearchRequest request) {
+        Pageable pageable = createPageable(request);
+        return busCompanyRepository.searchByIdOrName(request.getKeyword().trim(), pageable)
+                .map(this::convertToResponse);
+    }
+
+    public BusResponse getBusDetailByCompanyForAdmin(Integer companyId, Integer busId) {
+        // Verify company exists
+        if (!busCompanyRepository.existsById(companyId)) {
+            throw new ResourceNotFoundException("Không tìm thấy nhà xe với ID: " + companyId);
+        }
+
+        Bus bus = busRepository.findById(busId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy xe với ID: " + busId));
+
+        if (!bus.getCompany().getId().equals(companyId)) {
+            throw new IllegalArgumentException("Xe không thuộc về nhà xe này");
+        }
+
+        return convertToBusResponseWithSeats(bus);
+    }
+
+    @Transactional
+    public void deleteBusOfCompanyByAdmin(Integer companyId, Integer busId,
+            com.example.ckdatveexe.module.bus.dto.DeleteBusRequest request) {
+        // Verify company exists
+        if (!busCompanyRepository.existsById(companyId)) {
+            throw new ResourceNotFoundException("Không tìm thấy nhà xe với ID: " + companyId);
+        }
+
+        Bus bus = busRepository.findById(busId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy xe với ID: " + busId));
+
+        if (!bus.getCompany().getId().equals(companyId)) {
+            throw new IllegalArgumentException("Xe không thuộc về nhà xe này");
+        }
+
+        if (request.isHardDelete()) {
+            // Hard delete - xóa vĩnh viễn
+            seatRepository.deleteByBusId(busId);
+            busRepository.delete(bus);
+        } else {
+            // Soft delete - chuyển trạng thái
+            bus.setStatus(BusStatus.MAINTENANCE);
+            busRepository.save(bus);
+        }
+    }
+
+    @Transactional
+    public BusCompanyResponse restoreBusCompanyAccount(Integer companyId) {
+        BusCompany company = busCompanyRepository.findById(companyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhà xe với ID: " + companyId));
+
+        // Find associated user account
+        User companyUser = userRepository.findByBusCompanyId(companyId)
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản của nhà xe"));
+
+        // Restore account if it was blocked
+        if (companyUser.getStatus() == UserStatus.BLOCKED) {
+            companyUser.setStatus(UserStatus.ACTIVE);
+            userRepository.save(companyUser);
+
+            // Send email notification
+            try {
+                emailService.sendAccountRestorationNotification(
+                        companyUser.getEmail(),
+                        company.getCompanyName());
+            } catch (Exception e) {
+                log.error("Lỗi khi gửi email thông báo khôi phục tài khoản: ", e);
+            }
+        } else {
+            throw new IllegalArgumentException("Tài khoản nhà xe này chưa bị khóa");
+        }
+
+        return convertToResponse(company);
+    }
+
+    // New methods for BusCompanyManagementController
+
+    @Transactional
+    public BusCompanyResponse updateMyCompany(Integer companyId, BusCompanyUpdateRequest request) {
+        BusCompany busCompany = busCompanyRepository.findById(companyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhà xe với ID: " + companyId));
+
+        // Update company info
+        if (request.getCompanyName() != null && !request.getCompanyName().trim().isEmpty()) {
+            if (!busCompany.getCompanyName().equalsIgnoreCase(request.getCompanyName()) &&
+                    busCompanyRepository.existsByCompanyNameIgnoreCase(request.getCompanyName())) {
+                throw new IllegalArgumentException("Tên công ty đã tồn tại");
+            }
+            busCompany.setCompanyName(request.getCompanyName());
+        }
+
+        if (request.getImage() != null) {
+            busCompany.setImage(request.getImage());
+        }
+
+        if (request.getDescriptions() != null) {
+            busCompany.setDescriptions(request.getDescriptions());
+        }
+
+        BusCompany updatedCompany = busCompanyRepository.save(busCompany);
+        return convertToResponse(updatedCompany);
+    }
+
+    public Page<BusResponse> searchMyCompanyBuses(Integer companyId, BusSearchRequest request) {
+        Pageable pageable = createPageable(request);
+        Page<Bus> buses = busRepository.searchBusesByCompany(
+                companyId,
+                request.getKeyword().trim(),
+                request.getStatus() != null ? request.getStatus() : BusStatus.ACTIVE,
+                pageable);
+
+        return buses.map(this::convertToBusResponse);
+    }
 }
