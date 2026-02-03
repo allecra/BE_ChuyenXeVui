@@ -8,6 +8,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -50,7 +52,11 @@ public class Station {
     private List<Route> arrivalRoutes;
 
     @ManyToMany(mappedBy = "stations", fetch = FetchType.LAZY)
-    private Set<Bus> buses;
+    private Set<Bus> buses = new HashSet<>();
+
+    // BusStation relationships
+    @OneToMany(mappedBy = "station", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<BusStation> busStations = new ArrayList<>();
 
     @OneToMany(mappedBy = "station", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<BusHistory> busHistories;

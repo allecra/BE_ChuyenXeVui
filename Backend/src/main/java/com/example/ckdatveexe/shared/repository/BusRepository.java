@@ -68,4 +68,8 @@ public interface BusRepository extends JpaRepository<Bus, Integer> {
 
         // Xóa tất cả xe của company (cho hard delete)
         void deleteByCompanyId(Integer companyId);
+
+        // Tìm xe theo station
+        @Query("SELECT b FROM Bus b JOIN b.stations s WHERE s.id = :stationId")
+        List<Bus> findBusesByStationId(@Param("stationId") Integer stationId);
 }

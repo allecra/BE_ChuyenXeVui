@@ -15,10 +15,26 @@ src/
 │   │   │   │   ├── controller/  # Auth controllers
 │   │   │   │   ├── dto/         # Auth DTOs
 │   │   │   │   └── service/     # Auth services
+│   │   │   ├── bus/             # Bus management module
+│   │   │   │   ├── controller/  # Bus controllers (User, Admin, Company)
+│   │   │   │   ├── dto/         # Bus DTOs
+│   │   │   │   └── service/     # Bus services
+│   │   │   ├── seat/            # Seat management module
+│   │   │   │   ├── controller/  # Seat controllers (User, Company)
+│   │   │   │   ├── dto/         # Seat DTOs
+│   │   │   │   └── service/     # Seat services
+│   │   │   ├── station/         # Station management module
+│   │   │   │   ├── controller/  # Station controllers (User, Company)
+│   │   │   │   ├── dto/         # Station DTOs
+│   │   │   │   └── service/     # Station services
 │   │   │   ├── buscompany/      # Bus company management module
 │   │   │   │   ├── controller/  # Bus company controllers (Admin & User)
 │   │   │   │   ├── dto/         # Bus company DTOs
 │   │   │   │   └── service/     # Bus company services
+│   │   │   ├── user/            # User management module
+│   │   │   │   ├── controller/  # User controllers (Admin)
+│   │   │   │   ├── dto/         # User DTOs
+│   │   │   │   └── service/     # User services
 │   │   │   ├── controller/      # General controllers
 │   │   │   └── media/           # Media upload module
 │   │   ├── shared/              # Shared components
@@ -76,7 +92,7 @@ MAIL_PORT=587
 MAIL_USERNAME=your_email@gmail.com
 MAIL_PASSWORD=your_app_password
 
-# Cloudinary Configuration
+# Cloudinary Configuration (Required for image upload)
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
@@ -105,27 +121,6 @@ The application will start on `http://localhost:8080`
 - Password reset with OTP verification
 - Refresh token mechanism
 
-### Bus Company Management
-
-- **User Features:**
-  - View list of bus companies with search and pagination
-  - Register new bus company (requires approval)
-  - Receive email notifications about registration status
-
-- **Admin Features:**
-  - Full CRUD operations for bus companies
-  - Review and approve/reject bus company registrations
-  - Send email notifications to applicants
-  - Advanced filtering and search capabilities
-  - Reset bus company passwords
-  - View which company owns specific buses
-
-- **Bus Company Features:**
-  - View own company information
-  - View and manage own buses with detailed seat information
-  - Change password with email notification
-  - Access to bus management APIs
-
 ### Bus Management System
 
 - **Complete Bus CRUD Operations:**
@@ -150,6 +145,71 @@ The application will start on `http://localhost:8080`
   - **ADMIN**: Full access to all buses with detailed information
   - **BUS_COMPANY**: Complete CRUD for own buses only
 
+### Seat Management System
+
+- **Role-based Seat Operations:**
+  - **USER**: View available seats, check seat details
+  - **BUS_COMPANY**: Full CRUD operations for seats on own buses
+
+- **Seat Features:**
+  - Soft delete functionality (DELETED status)
+  - Price management per seat
+  - Status management (AVAILABLE, BOOKED, MAINTENANCE, DELETED)
+  - Business rules enforcement (can't delete/update BOOKED seats)
+
+- **Seat Types:**
+  - **STANDARD**: Regular seats
+  - **VIP**: Premium seats
+  - **SLEEPER**: Sleeping beds
+  - **BUSINESS**: Business class seats
+
+### Station Management System
+
+- **Multi-role Station Access:**
+  - **USER**: View stations and active buses at stations
+  - **BUS_COMPANY**: Full CRUD operations, bus assignment
+
+- **Station Features:**
+  - Many-to-many Bus-Station relationships
+  - Assign/remove buses to/from stations
+  - Soft/hard delete functionality
+  - Advanced search and filtering
+
+- **Bus Assignment:**
+  - Flexible bus-station assignments
+  - Replace all buses or add new ones
+  - Track bus counts per station
+
+### User Management System
+
+- **Admin User Management:**
+  - View all users with filtering
+  - Update user information and status
+  - Soft delete users with restoration capability
+  - User status management (ACTIVE, BLOCKED, PENDING)
+
+### Bus Company Management
+
+- **User Features:**
+  - View list of bus companies with search and pagination
+  - Register new bus company (requires approval)
+  - Receive email notifications about registration status
+
+- **Admin Features:**
+  - Full CRUD operations for bus companies
+  - Review and approve/reject bus company registrations
+  - Send email notifications to applicants
+  - Advanced filtering and search capabilities
+  - Reset bus company passwords
+  - View which company owns specific buses
+  - Delete bus companies with email notifications
+
+- **Bus Company Features:**
+  - View own company information
+  - View and manage own buses with detailed seat information
+  - Change password with email notification
+  - Access to bus management APIs
+
 ### Password Management
 
 - **Admin Password Reset**: Reset any bus company password
@@ -169,8 +229,27 @@ The application will start on `http://localhost:8080`
 ### Media Upload
 
 - Cloudinary integration for image uploads
-- Support for various image formats
-- Automatic image optimization
+- Support for various image formats (jpg, png, gif, webp, etc.)
+- Automatic image optimization and transformation
+- Folder-based organization on Cloudinary
+- File size validation (max 10MB)
+- Secure URL generation for database storage
+
+**Workflow:**
+
+1. Frontend selects image file from local folder
+2. Upload via `POST /api/media/upload` with optional folder parameter
+3. Cloudinary processes and stores the image
+4. API returns secure URL and metadata
+5. Save the returned URL to database entity (bus.image, station.image, etc.)
+
+**Supported Use Cases:**
+
+- Bus images and galleries
+- Station photos and wallpapers
+- Company logos and branding
+- User profile pictures
+- General media assets
 
 ### Security Features
 
@@ -224,6 +303,59 @@ The application will start on `http://localhost:8080`
 - `GET /api/bus-company/buses/deleted` - Xem xe đã xóa
 - `POST /api/bus-company/buses/deleted/{deletedBusId}/restore` - Khôi phục xe
 
+### Seat Management APIs
+
+#### User APIs (`/api/user/seats`) - **Yêu cầu đăng nhập**
+
+- `GET /api/user/seats/bus/{busId}` - Danh sách ghế của xe (chỉ ghế không bị xóa)
+- `GET /api/user/seats/{seatId}` - Chi tiết ghế
+- `GET /api/user/seats/available/bus/{busId}` - Ghế trống có thể đặt
+
+#### Bus Company APIs (`/api/bus-company/seats`)
+
+- `POST /api/bus-company/seats` - Tạo ghế mới
+- `GET /api/bus-company/seats` - Danh sách tất cả ghế (bao gồm đã xóa)
+- `GET /api/bus-company/seats/{seatId}` - Chi tiết ghế
+- `PUT /api/bus-company/seats/{seatId}` - Cập nhật thông tin ghế
+- `PUT /api/bus-company/seats/{seatId}/status` - Cập nhật trạng thái ghế
+- `PUT /api/bus-company/seats/{seatId}/price` - Cập nhật giá ghế
+- `DELETE /api/bus-company/seats/{seatId}` - Xóa mềm ghế
+
+### Station Management APIs
+
+#### User APIs (`/api/user/stations`) - **Yêu cầu đăng nhập**
+
+- `GET /api/user/stations` - Danh sách tất cả bến xe (có phân trang, lọc)
+- `GET /api/user/stations/{stationId}` - Chi tiết bến xe
+- `GET /api/user/stations/{stationId}/buses` - Danh sách xe tại bến (chỉ xe ACTIVE)
+- `GET /api/user/stations/search` - Tìm kiếm bến xe theo từ khóa
+- `GET /api/user/stations/{stationId}/buses/search` - Tìm kiếm xe trong bến
+
+#### Bus Company APIs (`/api/bus-company/stations`)
+
+- `POST /api/bus-company/stations` - Tạo bến xe mới
+- `GET /api/bus-company/stations` - Danh sách tất cả bến xe (full details)
+- `GET /api/bus-company/stations/{stationId}` - Chi tiết bến xe
+- `PUT /api/bus-company/stations/{stationId}` - Cập nhật thông tin bến xe
+- `POST /api/bus-company/stations/assign-buses` - Gắn xe vào bến
+- `DELETE /api/bus-company/stations/{stationId}/buses` - Gỡ xe khỏi bến
+- `GET /api/bus-company/stations/{stationId}/buses` - Danh sách xe tại bến (tất cả trạng thái)
+- `GET /api/bus-company/stations/search` - Tìm kiếm bến xe
+- `GET /api/bus-company/stations/{stationId}/buses/search` - Tìm kiếm xe trong bến
+- `DELETE /api/bus-company/stations/{stationId}` - Xóa bến xe (soft/hard delete)
+
+### User Management APIs
+
+#### Admin APIs (`/api/admin/users`)
+
+- `GET /api/admin/users` - Danh sách tất cả người dùng (có phân trang, lọc)
+- `GET /api/admin/users/{userId}` - Chi tiết người dùng
+- `PUT /api/admin/users/{userId}` - Cập nhật thông tin người dùng
+- `PUT /api/admin/users/{userId}/status` - Cập nhật trạng thái người dùng
+- `DELETE /api/admin/users/{userId}` - Xóa mềm người dùng
+- `GET /api/admin/users/deleted` - Danh sách người dùng đã xóa
+- `POST /api/admin/users/deleted/{deletedUserId}/restore` - Khôi phục người dùng
+
 ### Bus Company Management APIs
 
 #### Bus Company Management (`/api/bus-company/management`)
@@ -270,7 +402,59 @@ The application will start on `http://localhost:8080`
 
 ### Media Management
 
-- `POST /api/media/upload` - Upload file lên Cloudinary
+- `POST /api/media/upload` - Upload file lên Cloudinary với folder tùy chọn
+
+#### Media Upload API Details
+
+**Endpoint:** `POST /api/media/upload`
+**Content-Type:** `multipart/form-data`
+**Authentication:** Required (JWT Bearer token)
+**Roles:** USER, ADMIN, BUS_COMPANY
+
+**Parameters:**
+
+- `file` (required): File ảnh từ folder local
+- `folder` (optional): Tên folder trên Cloudinary (default: "uploads")
+
+**File Validation:**
+
+- Chỉ chấp nhận file hình ảnh (jpg, png, gif, etc.)
+- Kích thước tối đa: 10MB
+- File không được để trống
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "message": "Upload file thành công",
+  "data": {
+    "url": "https://res.cloudinary.com/your-cloud/image/upload/v1234567890/folder/filename.jpg",
+    "publicId": "folder/filename",
+    "format": "jpg",
+    "resourceType": "image",
+    "bytes": 123456
+  }
+}
+```
+
+**Usage Example:**
+
+```bash
+curl -X POST "http://localhost:8080/api/media/upload" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -F "file=@/path/to/image.jpg" \
+  -F "folder=bus-images"
+```
+
+**Integration with Other APIs:**
+
+- Bus images: Use `folder=bus-images`
+- Station images: Use `folder=station-images`
+- Company logos: Use `folder=company-logos`
+- User avatars: Use `folder=user-avatars`
+
+The returned `url` should be saved to the database in the respective entity's image field.
 
 ## Dependencies
 
@@ -290,7 +474,7 @@ The application will start on `http://localhost:8080`
 ### Core Tables
 
 - `users` - User accounts and authentication
-- `roles` - User roles (USER, ADMIN)
+- `roles` - User roles (USER, ADMIN, BUS_COMPANY)
 - `refresh_tokens` - JWT refresh tokens
 - `password_resets` - Password reset tokens
 
@@ -299,15 +483,64 @@ The application will start on `http://localhost:8080`
 - `bus_companies` - Thông tin nhà xe đã được duyệt
 - `bus_company_registrations` - Đăng ký nhà xe chờ xử lý
 
-### Other Tables
+### Bus & Transportation Tables
 
 - `buses` - Bus information
-- `seats` - Bus seat information with layout
+- `seats` - Bus seat information with layout and pricing
 - `deleted_buses` - Soft deleted buses with restoration capability
+- `stations` - Bus stations and terminals
 - `routes` - Bus routes
 - `schedules` - Bus schedules
+
+### User Management Tables
+
+- `deleted_users` - Soft deleted users with restoration capability
+
+### Booking & Payment Tables
+
 - `tickets` - Ticket bookings
 - `payments` - Payment records
+
+### Key Enums
+
+#### SeatStatus
+
+- `AVAILABLE` - Seat is available for booking
+- `BOOKED` - Seat is already booked
+- `MAINTENANCE` - Seat is under maintenance
+- `DELETED` - Seat is soft deleted
+
+#### SeatType
+
+- `STANDARD` - Regular seats
+- `VIP` - Premium seats
+- `SLEEPER` - Sleeping beds
+- `BUSINESS` - Business class seats
+
+#### BusStatus
+
+- `ACTIVE` - Bus is operational
+- `MAINTENANCE` - Bus is under maintenance
+- `INACTIVE` - Bus is not operational
+
+#### UserStatus
+
+- `ACTIVE` - User account is active
+- `BLOCKED` - User account is blocked
+- `PENDING` - User account is pending activation
+
+### Database Migrations
+
+The system uses Flyway migrations for database schema management:
+
+- `V1__Create_bus_company_registration_table.sql` - Create bus company registration table
+- `V2__Create_bus_and_seat_tables.sql` - Create bus and seat tables
+- `V3__Update_seat_type_enum.sql` - Update seat type enum
+- `V4__Add_bus_company_role.sql` - Add BUS_COMPANY role
+- `V5__Update_phone_column_length.sql` - Increase phone column length
+- `V6__Fix_seat_type_enum.sql` - Fix SeatType enum values
+- `V7__Update_seat_status_enum.sql` - Add MAINTENANCE, DELETED to SeatStatus
+- `V8__Update_password_reset_otp_length.sql` - Update password reset OTP length
 
 ## API Documentation
 
@@ -323,6 +556,88 @@ mvn test
 ```
 
 ## Usage Examples
+
+### Media Upload Integration
+
+#### 1. Upload Bus Image
+
+```bash
+# Step 1: Upload image to Cloudinary
+curl -X POST "http://localhost:8080/api/media/upload" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -F "file=@bus-photo.jpg" \
+  -F "folder=bus-images"
+
+# Response:
+{
+  "success": true,
+  "data": {
+    "url": "https://res.cloudinary.com/your-cloud/image/upload/v1234567890/bus-images/bus-photo.jpg"
+  }
+}
+
+# Step 2: Create bus with the uploaded image URL
+curl -X POST "http://localhost:8080/api/bus-company/buses" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Xe Limousine VIP",
+    "licensePlate": "51A-12345",
+    "capacity": 22,
+    "busType": "LIMOUSINE",
+    "image": "https://res.cloudinary.com/your-cloud/image/upload/v1234567890/bus-images/bus-photo.jpg"
+  }'
+```
+
+#### 2. Upload Station Image
+
+```bash
+# Upload station image
+curl -X POST "http://localhost:8080/api/media/upload" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -F "file=@station-photo.jpg" \
+  -F "folder=station-images"
+
+# Create station with uploaded image
+curl -X POST "http://localhost:8080/api/bus-company/stations" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Bến xe Miền Đông",
+    "location": "TP.HCM",
+    "image": "https://res.cloudinary.com/your-cloud/image/upload/v1234567890/station-images/station-photo.jpg"
+  }'
+```
+
+#### 3. Upload Company Logo
+
+```bash
+# Upload company logo
+curl -X POST "http://localhost:8080/api/media/upload" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -F "file=@company-logo.png" \
+  -F "folder=company-logos"
+
+# Register bus company with logo
+curl -X POST "http://localhost:8080/api/public/bus-company/register" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "companyName": "Nhà xe Phương Trang",
+    "email": "contact@phuongtrang.vn",
+    "image": "https://res.cloudinary.com/your-cloud/image/upload/v1234567890/company-logos/company-logo.png"
+  }'
+```
+
+### Recommended Folder Structure on Cloudinary
+
+```
+uploads/
+├── bus-images/          # Bus photos and galleries
+├── station-images/      # Station photos and wallpapers
+├── company-logos/       # Bus company logos and branding
+├── user-avatars/        # User profile pictures
+└── general/            # Other media assets
+```
 
 # Bus Company Management API
 
@@ -540,11 +855,119 @@ curl -X GET "http://localhost:8080/api/admin/bus-companies/registrations?status=
   -H "Authorization: Bearer ADMIN_JWT_TOKEN"
 ```
 
-## License
+## Current System Status
 
-All rights reserved
+### ✅ Completed Modules
+
+- **Authentication System**: Complete JWT-based auth with role management
+- **Bus Management**: Full CRUD with automatic seat generation and soft delete
+- **Seat Management**: Complete seat lifecycle with business rules
+- **Station Management**: Full station and bus assignment system
+- **User Management**: Complete user lifecycle with admin controls
+- **Bus Company Management**: Registration workflow with admin approval
+- **Email System**: Professional HTML templates with automated notifications
+
+### 📊 System Statistics
+
+- **API Endpoints**: 50+ endpoints across 6 modules
+- **Database Tables**: 15+ entities with relationships
+- **Migration Files**: 8 Flyway migrations
+- **Roles**: 3 role-based access levels (USER, ADMIN, BUS_COMPANY)
+- **Email Templates**: 10+ professional email templates
+- **Status Codes**: Comprehensive HTTP status code handling
+
+### 🔧 Technical Features
+
+- **Security**: JWT authentication, role-based authorization, input validation
+- **Database**: MySQL with Flyway migrations, soft delete capabilities
+- **Email**: SMTP integration with HTML templates
+- **File Upload**: Cloudinary integration for media management
+- **Documentation**: Complete Swagger/OpenAPI documentation
+- **Logging**: Comprehensive logging with emoji status indicators
+- **Error Handling**: Global exception handling with Vietnamese messages
+
+### 🚀 Production Ready
+
+The system is fully functional and production-ready with:
+
+- Complete CRUD operations for all entities
+- Role-based security implementation
+- Professional email notification system
+- Comprehensive error handling and validation
+- Database migration support
+- API documentation
+- Logging and monitoring capabilities
+
+**Current Version**: 3.0.0  
+**Last Updated**: February 2025  
+**Status**: Production Ready ✅
 
 ## Recent Updates
+
+### Version 3.0 - Complete API System with Station & Seat Management
+
+#### 🏢 Station Management System
+
+- **Multi-role Station Access**: USER can view stations and buses, BUS_COMPANY has full CRUD
+- **Bus-Station Relationships**: Many-to-many relationships with flexible assignment
+- **Advanced Search**: Search stations by keyword and location with pagination
+- **Soft/Hard Delete**: Safe deletion with restoration capabilities
+
+#### 🪑 Comprehensive Seat Management
+
+- **Role-based Seat Operations**: USER view-only access, BUS_COMPANY full CRUD
+- **Seat Status Management**: AVAILABLE, BOOKED, MAINTENANCE, DELETED states
+- **Business Rules**: Prevent deletion/modification of BOOKED seats
+- **Price Management**: Individual seat pricing with bulk updates
+
+#### � User Management System
+
+- **Admin User Control**: Full user lifecycle management
+- **User Status Management**: ACTIVE, BLOCKED, PENDING states
+- **Soft Delete & Restore**: Safe user deletion with restoration
+- **Advanced Filtering**: Search and filter users by various criteria
+
+#### 🚌 Enhanced Bus Management
+
+- **Complete CRUD Operations**: Full lifecycle management for buses
+- **Automatic Seat Generation**: Smart seat layouts based on bus type
+- **Soft Delete & Restore**: Safe deletion with restoration capabilities
+- **Advanced Search**: Multi-criteria search and filtering
+
+#### 🔐 Enhanced Security & Authentication
+
+- **Role-based Access Control**: USER, ADMIN, BUS_COMPANY roles
+- **JWT Authentication**: Secure token-based authentication
+- **Password Management**: Reset and change password functionality
+- **Email Notifications**: Automated email notifications for all actions
+
+#### � Professional Email System
+
+- **HTML Email Templates**: Beautiful, responsive email templates
+- **Multiple Notification Types**: Registration, approval, password changes, deletions
+- **Automatic Triggers**: Smart email sending based on system events
+- **Vietnamese Language Support**: All emails in Vietnamese
+
+#### �️ Database Enhancements
+
+- **8 Migration Files**: Complete database schema evolution
+- **Soft Delete Tables**: `deleted_buses`, `deleted_users` for safe deletion
+- **Enhanced Enums**: Complete status management for all entities
+- **Data Integrity**: Foreign key relationships and constraints
+
+#### 🛡️ Business Rules & Validation
+
+- **Seat Management**: Cannot delete/update BOOKED seats
+- **User Management**: Proper status transitions and validations
+- **Station Management**: Bus assignment validation and constraints
+- **Company Management**: Registration workflow with approval process
+
+#### 📊 API Documentation & Monitoring
+
+- **Comprehensive Logging**: Emoji-based status code logging
+- **Error Handling**: Proper HTTP status codes with Vietnamese messages
+- **API Documentation**: Complete Swagger documentation
+- **Performance Monitoring**: Request/response tracking
 
 ### Version 2.0 - Bus Management System & Enhanced Features
 
@@ -562,39 +985,12 @@ All rights reserved
 - **Email Notifications**: Automatic notifications for all password-related activities
 - **Account Creation**: Automatic user account creation when bus company registration is approved
 
-#### 📧 Professional Email System
-
-- **HTML Email Templates**: Beautiful, responsive email templates
-- **Multiple Notification Types**: Registration, approval, password changes, account creation
-- **Automatic Triggers**: Smart email sending based on system events
-- **Vietnamese Language Support**: All emails in Vietnamese with professional formatting
-
 #### 🏢 Advanced Bus Company Features
 
 - **Company Dashboard**: Bus companies can view their own information and buses
 - **Detailed Bus Information**: Complete bus details including seat layouts
 - **Bus Ownership Tracking**: Administrators can see which company owns any bus
 - **Registration Workflow**: Streamlined registration with automatic account creation
-
-#### 🛡️ Role-Based Access Control
-
-- **USER Role**: View public bus information and search
-- **ADMIN Role**: Full system administration capabilities
-- **BUS_COMPANY Role**: Manage own buses and company information
-
-#### 📊 Database Enhancements
-
-- **New Tables**: `deleted_buses`, enhanced `seats` table
-- **Data Integrity**: Foreign key relationships and constraints
-- **Migration Support**: Flyway migrations for schema updates
-- **Audit Trail**: Track deletions and modifications
-
-#### 🔧 Technical Improvements
-
-- **API Documentation**: Comprehensive Swagger documentation
-- **Error Handling**: Improved error messages in Vietnamese
-- **Validation**: Enhanced input validation and security
-- **Performance**: Optimized queries and pagination
 
 # Bus API Documentation
 
