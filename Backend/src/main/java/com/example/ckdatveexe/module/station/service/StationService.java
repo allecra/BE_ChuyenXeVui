@@ -887,4 +887,45 @@ public class StationService {
         Station updatedStation = stationRepository.findById(stationId).orElse(station);
         return convertToDetailResponse(updatedStation, true);
     }
+
+    /**
+     * Update bus status at station
+     */
+    @Transactional
+    public BusStationResponse updateBusStationStatus(Integer stationId, BusStationStatusUpdateRequest request) {
+        log.info("🏢 [STATION] Updating bus status at station - StationID: {}, BusID: {}, IsActive: {}",
+                stationId, request.getBusId(), request.getIsActive());
+
+        // Verify station exists
+        Station station = stationRepository.findById(stationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bến xe với ID: " + stationId));
+
+        // Verify bus exists
+        Bus bus = busRepository.findById(request.getBusId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy xe với ID: " + request.getBusId()));
+
+        // Find the BusStation relationship
+        Optional<BusStation> busStationOpt = busStationRepository.findByBusIdAndStationId(
+                request.getBusId(), stationId);
+
+        if (busStationOpt.isEmpty()) {
+            throw new ResourceNotFoundException(
+                    "Không tìm thấy mối quan hệ giữa xe ID " + request.getBusId() + " và bến xe ID " + stationId);
+        }
+
+        BusStation busStation = busStationOpt.get();
+
+        // Update status and notes
+        busStation.setIsActive(request.getIsActive());
+        if (request.getNotes() != null) {
+            busStation.setNotes(request.getNotes());
+        }
+
+        BusStation updatedBusStation = busStationRepository.save(busStation);
+
+        log.info("✅ [STATION] Updated bus status at station - Bus: {} at Station: {}, Active: {}, Notes: {}",
+                bus.getName(), station.getName(), updatedBusStation.getIsActive(), updatedBusStation.getNotes());
+
+        return convertToBusStationResponse(updatedBusStation);
+    }
 }

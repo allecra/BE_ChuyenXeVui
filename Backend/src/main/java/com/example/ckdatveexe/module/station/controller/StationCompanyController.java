@@ -766,4 +766,79 @@ public class StationCompanyController {
                                                         .build());
                 }
         }
+
+        @PutMapping("/{stationId}/buses/status")
+        @Operation(summary = "Cập nhật trạng thái xe trong bến", description = "Cập nhật trạng thái hoạt động và ghi chú của xe tại bến xe")
+        @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Thông tin cập nhật trạng thái xe", content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json", examples = {
+                        @io.swagger.v3.oas.annotations.media.ExampleObject(name = "Tạm ngưng xe", summary = "Tạm ngưng hoạt động của xe tại bến", description = "Đặt xe về trạng thái không hoạt động với ghi chú", value = """
+                                        {
+                                          "busId": 3,
+                                          "isActive": false,
+                                          "notes": "Xe đang bảo trì định kỳ, dự kiến hoạt động lại sau 3 ngày"
+                                        }
+                                        """),
+                        @io.swagger.v3.oas.annotations.media.ExampleObject(name = "Kích hoạt xe", summary = "Kích hoạt lại xe tại bến", description = "Đặt xe về trạng thái hoạt động", value = """
+                                        {
+                                          "busId": 4,
+                                          "isActive": true,
+                                          "notes": "Xe đã hoàn thành bảo trì, sẵn sàng hoạt động"
+                                        }
+                                        """),
+                        @io.swagger.v3.oas.annotations.media.ExampleObject(name = "Cập nhật ghi chú", summary = "Chỉ cập nhật ghi chú", description = "Cập nhật ghi chú mà không thay đổi trạng thái", value = """
+                                        {
+                                          "busId": 5,
+                                          "isActive": true,
+                                          "notes": "Xe được nâng cấp hệ thống điều hòa mới"
+                                        }
+                                        """)
+        }))
+        @PreAuthorize("hasRole('BUS_COMPANY')")
+        public ResponseEntity<ApiResponse<BusStationResponse>> updateBusStationStatus(
+                        @PathVariable Integer stationId,
+                        @Valid @RequestBody BusStationStatusUpdateRequest request,
+                        Authentication authentication) {
+
+                log.info("🚌 [BUS COMPANY] PUT /api/bus-company/stations/{}/buses/status - Update bus status at station",
+                                stationId);
+                log.info("🔐 [BUS COMPANY] User: {}, Authorities: {}",
+                                authentication.getName(), authentication.getAuthorities());
+
+                try {
+                        BusStationResponse busStation = stationService.updateBusStationStatus(stationId, request);
+
+                        log.info("✅ [BUS COMPANY] 200 OK - Updated bus status: Bus {} at Station {}, Active: {}",
+                                        request.getBusId(), stationId, request.getIsActive());
+                        return ResponseEntity.ok(ApiResponse.<BusStationResponse>builder()
+                                        .success(true)
+                                        .message("Cập nhật trạng thái xe trong bến thành công")
+                                        .data(busStation)
+                                        .build());
+
+                } catch (ResourceNotFoundException e) {
+                        log.warn("🔍 [BUS COMPANY] 404 NOT_FOUND - Resource not found: {}", e.getMessage());
+                        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                        .body(ApiResponse.<BusStationResponse>builder()
+                                                        .success(false)
+                                                        .message(e.getMessage())
+                                                        .build());
+
+                } catch (IllegalArgumentException e) {
+                        log.error("❌ [BUS COMPANY] 400 BAD_REQUEST - Invalid status update request: {}",
+                                        e.getMessage());
+                        return ResponseEntity.badRequest()
+                                        .body(ApiResponse.<BusStationResponse>builder()
+                                                        .success(false)
+                                                        .message(e.getMessage())
+                                                        .build());
+
+                } catch (Exception e) {
+                        log.error("💥 [BUS COMPANY] 500 INTERNAL_SERVER_ERROR - Failed to update bus status at station: {}",
+                                        stationId, e);
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                        .body(ApiResponse.<BusStationResponse>builder()
+                                                        .success(false)
+                                                        .message("Lỗi hệ thống khi cập nhật trạng thái xe trong bến")
+                                                        .build());
+                }
+        }
 }
