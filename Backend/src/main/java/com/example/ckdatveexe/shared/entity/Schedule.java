@@ -26,6 +26,15 @@ public class Schedule {
     @Column(name = "arrival_time", nullable = false)
     private LocalDateTime arrivalTime;
 
+    @Column(name = "start_station_id", nullable = false)
+    private Integer startStationId;
+
+    @Column(name = "end_station_id", nullable = false)
+    private Integer endStationId;
+
+    @Column(name = "price", nullable = false)
+    private Double price;
+
     @Column(name = "available_seat", nullable = false)
     private Integer availableSeat;
 
@@ -34,7 +43,10 @@ public class Schedule {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ScheduleStatus status = ScheduleStatus.AVAILABLE;
+    private ScheduleStatus status = ScheduleStatus.ACTIVE;
+
+    @Column(name = "notes")
+    private String notes;
 
     @CreationTimestamp
     @Column(name = "created_at")
@@ -48,9 +60,23 @@ public class Schedule {
     @JoinColumn(name = "route_id", nullable = false)
     private Route route;
 
+    // Legacy single bus relationship - kept for backward compatibility
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "bus_id", nullable = false)
+    @JoinColumn(name = "bus_id")
     private Bus bus;
+
+    // Derived relationships for convenience
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "start_station_id", insertable = false, updatable = false)
+    private Station startStation;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "end_station_id", insertable = false, updatable = false)
+    private Station endStation;
+
+    // New multi-bus relationship
+    @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<ScheduleBus> scheduleBuses;
 
     // Relationships
     @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

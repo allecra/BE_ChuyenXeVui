@@ -18,46 +18,47 @@ public interface RouteRepository extends JpaRepository<Route, Integer> {
 
     // Basic queries
     Optional<Route> findByIdAndStatus(Integer id, RouteStatus status);
-    
+
     List<Route> findByStatus(RouteStatus status);
-    
+
     Page<Route> findByStatus(RouteStatus status, Pageable pageable);
 
     // Company-specific queries
     Page<Route> findByBusCompanyIdAndStatusNot(Integer busCompanyId, RouteStatus status, Pageable pageable);
-    
+
     List<Route> findByBusCompanyIdAndStatusNot(Integer busCompanyId, RouteStatus status);
-    
+
     Optional<Route> findByIdAndBusCompanyId(Integer id, Integer busCompanyId);
 
     // Check if route name exists for company
     boolean existsByRouteNameAndBusCompanyIdAndStatusNot(String routeName, Integer busCompanyId, RouteStatus status);
-    
-    boolean existsByRouteNameAndBusCompanyIdAndIdNotAndStatusNot(String routeName, Integer busCompanyId, Integer id, RouteStatus status);
+
+    boolean existsByRouteNameAndBusCompanyIdAndIdNotAndStatusNot(String routeName, Integer busCompanyId, Integer id,
+            RouteStatus status);
 
     // Complex search query for users
     @Query("""
-        SELECT r FROM Route r 
-        WHERE r.status = 'ACTIVE'
-        AND (:startLocation IS NULL OR LOWER(r.startLocation) LIKE LOWER(CONCAT('%', :startLocation, '%')))
-        AND (:endLocation IS NULL OR LOWER(r.endLocation) LIKE LOWER(CONCAT('%', :endLocation, '%')))
-        AND (:minPrice IS NULL OR r.price >= :minPrice)
-        AND (:maxPrice IS NULL OR r.price <= :maxPrice)
-        AND (:busCompanyId IS NULL OR r.busCompany.id = :busCompanyId)
-        AND (:busCompanyName IS NULL OR LOWER(r.busCompany.companyName) LIKE LOWER(CONCAT('%', :busCompanyName, '%')))
-        AND EXISTS (
-            SELECT s FROM Schedule s 
-            WHERE s.route = r 
-            AND s.status = 'AVAILABLE'
-            AND s.bus.status = 'ACTIVE'
-            AND (:departureDate IS NULL OR DATE(s.departureTime) = DATE(:departureDate))
-            AND (:departureTimeFrom IS NULL OR TIME(s.departureTime) >= TIME(:departureTimeFrom))
-            AND (:departureTimeTo IS NULL OR TIME(s.departureTime) <= TIME(:departureTimeTo))
-            AND (:arrivalDate IS NULL OR DATE(s.arrivalTime) = DATE(:arrivalDate))
-            AND (:arrivalTimeFrom IS NULL OR TIME(s.arrivalTime) >= TIME(:arrivalTimeFrom))
-            AND (:arrivalTimeTo IS NULL OR TIME(s.arrivalTime) <= TIME(:arrivalTimeTo))
-        )
-        """)
+            SELECT r FROM Route r
+            WHERE r.status = 'ACTIVE'
+            AND (:startLocation IS NULL OR LOWER(r.startLocation) LIKE LOWER(CONCAT('%', :startLocation, '%')))
+            AND (:endLocation IS NULL OR LOWER(r.endLocation) LIKE LOWER(CONCAT('%', :endLocation, '%')))
+            AND (:minPrice IS NULL OR r.price >= :minPrice)
+            AND (:maxPrice IS NULL OR r.price <= :maxPrice)
+            AND (:busCompanyId IS NULL OR r.busCompany.id = :busCompanyId)
+            AND (:busCompanyName IS NULL OR LOWER(r.busCompany.companyName) LIKE LOWER(CONCAT('%', :busCompanyName, '%')))
+            AND EXISTS (
+                SELECT s FROM Schedule s
+                WHERE s.route = r
+                AND s.status = 'ACTIVE'
+                AND s.bus.status = 'ACTIVE'
+                AND (:departureDate IS NULL OR DATE(s.departureTime) = DATE(:departureDate))
+                AND (:departureTimeFrom IS NULL OR TIME(s.departureTime) >= TIME(:departureTimeFrom))
+                AND (:departureTimeTo IS NULL OR TIME(s.departureTime) <= TIME(:departureTimeTo))
+                AND (:arrivalDate IS NULL OR DATE(s.arrivalTime) = DATE(:arrivalDate))
+                AND (:arrivalTimeFrom IS NULL OR TIME(s.arrivalTime) >= TIME(:arrivalTimeFrom))
+                AND (:arrivalTimeTo IS NULL OR TIME(s.arrivalTime) <= TIME(:arrivalTimeTo))
+            )
+            """)
     Page<Route> searchRoutesForUser(
             @Param("startLocation") String startLocation,
             @Param("endLocation") String endLocation,
@@ -75,15 +76,15 @@ public interface RouteRepository extends JpaRepository<Route, Integer> {
 
     // Complex search query for companies
     @Query("""
-        SELECT r FROM Route r 
-        WHERE r.busCompany.id = :busCompanyId
-        AND r.status != 'DELETED'
-        AND (:startLocation IS NULL OR LOWER(r.startLocation) LIKE LOWER(CONCAT('%', :startLocation, '%')))
-        AND (:endLocation IS NULL OR LOWER(r.endLocation) LIKE LOWER(CONCAT('%', :endLocation, '%')))
-        AND (:minPrice IS NULL OR r.price >= :minPrice)
-        AND (:maxPrice IS NULL OR r.price <= :maxPrice)
-        AND (:status IS NULL OR r.status = :status)
-        """)
+            SELECT r FROM Route r
+            WHERE r.busCompany.id = :busCompanyId
+            AND r.status != 'DELETED'
+            AND (:startLocation IS NULL OR LOWER(r.startLocation) LIKE LOWER(CONCAT('%', :startLocation, '%')))
+            AND (:endLocation IS NULL OR LOWER(r.endLocation) LIKE LOWER(CONCAT('%', :endLocation, '%')))
+            AND (:minPrice IS NULL OR r.price >= :minPrice)
+            AND (:maxPrice IS NULL OR r.price <= :maxPrice)
+            AND (:status IS NULL OR r.status = :status)
+            """)
     Page<Route> searchRoutesForCompany(
             @Param("busCompanyId") Integer busCompanyId,
             @Param("startLocation") String startLocation,
@@ -98,19 +99,19 @@ public interface RouteRepository extends JpaRepository<Route, Integer> {
 
     // Get routes with active schedules
     @Query("""
-        SELECT DISTINCT r FROM Route r 
-        JOIN r.schedules s 
-        WHERE r.status = 'ACTIVE' 
-        AND s.status = 'AVAILABLE'
-        AND s.bus.status = 'ACTIVE'
-        """)
+            SELECT DISTINCT r FROM Route r
+            JOIN r.schedules s
+            WHERE r.status = 'ACTIVE'
+            AND s.status = 'ACTIVE'
+            AND s.bus.status = 'ACTIVE'
+            """)
     List<Route> findActiveRoutesWithActiveSchedules();
 
     // Check if route can be hard deleted (no active schedules)
     @Query("""
-        SELECT COUNT(s) FROM Schedule s 
-        WHERE s.route.id = :routeId 
-        AND s.status != 'CANCELLED'
-        """)
+            SELECT COUNT(s) FROM Schedule s
+            WHERE s.route.id = :routeId
+            AND s.status != 'CANCELLED'
+            """)
     long countActiveSchedulesByRouteId(@Param("routeId") Integer routeId);
 }
