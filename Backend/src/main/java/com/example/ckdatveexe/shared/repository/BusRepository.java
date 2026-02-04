@@ -16,53 +16,60 @@ import java.util.Optional;
 @Repository
 public interface BusRepository extends JpaRepository<Bus, Integer> {
 
-    // Tìm xe theo company
-    List<Bus> findByCompanyId(Integer companyId);
+        // Tìm xe theo company
+        List<Bus> findByCompanyId(Integer companyId);
 
-    Page<Bus> findByCompanyId(Integer companyId, Pageable pageable);
+        Page<Bus> findByCompanyId(Integer companyId, Pageable pageable);
 
-    // Tìm xe theo status
-    List<Bus> findByStatus(BusStatus status);
+        // Tìm xe theo status
+        List<Bus> findByStatus(BusStatus status);
 
-    Page<Bus> findByStatus(BusStatus status, Pageable pageable);
+        Page<Bus> findByStatus(BusStatus status, Pageable pageable);
 
-    // Tìm xe theo company và status
-    List<Bus> findByCompanyIdAndStatus(Integer companyId, BusStatus status);
+        // Tìm xe theo company và status
+        List<Bus> findByCompanyIdAndStatus(Integer companyId, BusStatus status);
 
-    Page<Bus> findByCompanyIdAndStatus(Integer companyId, BusStatus status, Pageable pageable);
+        Page<Bus> findByCompanyIdAndStatus(Integer companyId, BusStatus status, Pageable pageable);
 
-    // Tìm xe theo loại xe
-    List<Bus> findByBusType(BusType busType);
+        // Tìm xe theo loại xe
+        List<Bus> findByBusType(BusType busType);
 
-    Page<Bus> findByBusType(BusType busType, Pageable pageable);
+        Page<Bus> findByBusType(BusType busType, Pageable pageable);
 
-    // Tìm kiếm xe theo tên hoặc biển số
-    @Query("SELECT b FROM Bus b WHERE " +
-            "(LOWER(b.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(b.licensePlate) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
-            "b.status = :status")
-    Page<Bus> searchBuses(@Param("keyword") String keyword,
-            @Param("status") BusStatus status,
-            Pageable pageable);
+        // Tìm kiếm xe theo tên hoặc biển số
+        @Query("SELECT b FROM Bus b WHERE " +
+                        "(LOWER(b.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+                        "LOWER(b.licensePlate) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+                        "b.status = :status")
+        Page<Bus> searchBuses(@Param("keyword") String keyword,
+                        @Param("status") BusStatus status,
+                        Pageable pageable);
 
-    // Tìm kiếm xe của company
-    @Query("SELECT b FROM Bus b WHERE b.company.id = :companyId AND " +
-            "(LOWER(b.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(b.licensePlate) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
-            "b.status = :status")
-    Page<Bus> searchBusesByCompany(@Param("companyId") Integer companyId,
-            @Param("keyword") String keyword,
-            @Param("status") BusStatus status,
-            Pageable pageable);
+        // Tìm kiếm xe của company
+        @Query("SELECT b FROM Bus b WHERE b.company.id = :companyId AND " +
+                        "(LOWER(b.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+                        "LOWER(b.licensePlate) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+                        "b.status = :status")
+        Page<Bus> searchBusesByCompany(@Param("companyId") Integer companyId,
+                        @Param("keyword") String keyword,
+                        @Param("status") BusStatus status,
+                        Pageable pageable);
 
-    // Tìm xe theo biển số
-    Optional<Bus> findByLicensePlate(String licensePlate);
+        // Tìm xe theo biển số
+        Optional<Bus> findByLicensePlate(String licensePlate);
 
-    // Đếm số xe của company
-    long countByCompanyId(Integer companyId);
+        // Đếm số xe của company
+        long countByCompanyId(Integer companyId);
 
-    long countByCompanyIdAndStatus(Integer companyId, BusStatus status);
+        long countByCompanyIdAndStatus(Integer companyId, BusStatus status);
 
-    // Kiểm tra xe có tồn tại với biển số khác không (cho update)
-    boolean existsByLicensePlateAndIdNot(String licensePlate, Integer id);
+        // Kiểm tra xe có tồn tại với biển số khác không (cho update)
+        boolean existsByLicensePlateAndIdNot(String licensePlate, Integer id);
+
+        // Xóa tất cả xe của company (cho hard delete)
+        void deleteByCompanyId(Integer companyId);
+
+        // Tìm xe theo station
+        @Query("SELECT b FROM Bus b JOIN b.stations s WHERE s.id = :stationId")
+        List<Bus> findBusesByStationId(@Param("stationId") Integer stationId);
 }

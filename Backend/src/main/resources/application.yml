@@ -15,7 +15,7 @@ spring:
   
   jpa:
     hibernate:
-      ddl-auto: ${DB_DDL_AUTO:update}
+      ddl-auto: ${DB_DDL_AUTO:none}
     show-sql: ${DB_SHOW_SQL:true}
     properties:
       hibernate:

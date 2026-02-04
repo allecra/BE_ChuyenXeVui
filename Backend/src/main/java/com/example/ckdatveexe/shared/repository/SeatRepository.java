@@ -2,6 +2,9 @@ package com.example.ckdatveexe.shared.repository;
 
 import com.example.ckdatveexe.shared.entity.Seat;
 import com.example.ckdatveexe.shared.entity.SeatStatus;
+import com.example.ckdatveexe.shared.entity.SeatType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,34 +16,74 @@ import java.util.Optional;
 @Repository
 public interface SeatRepository extends JpaRepository<Seat, Integer> {
 
-    // Tìm ghế theo xe
-    List<Seat> findByBusIdOrderByRowNumberAscColumnNumberAsc(Integer busId);
+        // Basic queries
+        List<Seat> findByBusIdOrderByRowNumberAscColumnNumberAsc(Integer busId);
 
-    // Tìm ghế theo xe và status
-    List<Seat> findByBusIdAndStatus(Integer busId, SeatStatus status);
+        Page<Seat> findByBusIdAndStatusNotOrderByRowNumberAscColumnNumberAsc(
+                        Integer busId, SeatStatus excludeStatus, Pageable pageable);
 
-    // Tìm ghế theo số ghế và xe
-    Optional<Seat> findByBusIdAndSeatNumber(Integer busId, String seatNumber);
+        Page<Seat> findByBusIdOrderByRowNumberAscColumnNumberAsc(Integer busId, Pageable pageable);
 
-    // Đếm số ghế của xe
-    long countByBusId(Integer busId);
+        Optional<Seat> findByIdAndBusCompanyId(Integer seatId, Integer companyId);
 
-    // Đếm số ghế theo status
-    long countByBusIdAndStatus(Integer busId, SeatStatus status);
+        // Check if seat exists with same number in same bus
+        boolean existsByBusIdAndSeatNumber(Integer busId, String seatNumber);
 
-    // Xóa tất cả ghế của xe
-    void deleteByBusId(Integer busId);
+        boolean existsByBusIdAndSeatNumberAndIdNot(Integer busId, String seatNumber, Integer seatId);
 
-    // Kiểm tra ghế có tồn tại
-    boolean existsByBusIdAndSeatNumber(Integer busId, String seatNumber);
+        // Count seats by status
+        long countByBusIdAndStatus(Integer busId, SeatStatus status);
 
-    // Tìm ghế theo vị trí
-    Optional<Seat> findByBusIdAndRowNumberAndColumnNumber(Integer busId, Integer rowNumber, Integer columnNumber);
+        // Advanced search for BUS_COMPANY
+        @Query("SELECT s FROM Seat s JOIN s.bus b WHERE " +
+                        "(:busId IS NULL OR s.bus.id = :busId) AND " +
+                        "(:companyId IS NULL OR b.company.id = :companyId) AND " +
+                        "(:status IS NULL OR s.status = :status) AND " +
+                        "(:seatType IS NULL OR s.seatType = :seatType) AND " +
+                        "(:minPrice IS NULL OR s.priceForSeatType >= :minPrice) AND " +
+                        "(:maxPrice IS NULL OR s.priceForSeatType <= :maxPrice) AND " +
+                        "(:seatNumber IS NULL OR LOWER(s.seatNumber) LIKE LOWER(CONCAT('%', :seatNumber, '%')))")
+        Page<Seat> searchSeatsForCompany(@Param("busId") Integer busId,
+                        @Param("companyId") Integer companyId,
+                        @Param("status") SeatStatus status,
+                        @Param("seatType") SeatType seatType,
+                        @Param("minPrice") Double minPrice,
+                        @Param("maxPrice") Double maxPrice,
+                        @Param("seatNumber") String seatNumber,
+                        Pageable pageable);
 
-    // Lấy số hàng và cột lớn nhất
-    @Query("SELECT MAX(s.rowNumber) FROM Seat s WHERE s.bus.id = :busId")
-    Integer findMaxRowNumberByBusId(@Param("busId") Integer busId);
+        // Search for USER (exclude DELETED seats)
+        @Query("SELECT s FROM Seat s WHERE " +
+                        "s.bus.id = :busId AND " +
+                        "s.status != 'DELETED' AND " +
+                        "(:status IS NULL OR s.status = :status) AND " +
+                        "(:seatType IS NULL OR s.seatType = :seatType) AND " +
+                        "(:minPrice IS NULL OR s.priceForSeatType >= :minPrice) AND " +
+                        "(:maxPrice IS NULL OR s.priceForSeatType <= :maxPrice) AND " +
+                        "(:seatNumber IS NULL OR LOWER(s.seatNumber) LIKE LOWER(CONCAT('%', :seatNumber, '%')))")
+        Page<Seat> searchSeatsForUser(@Param("busId") Integer busId,
+                        @Param("status") SeatStatus status,
+                        @Param("seatType") SeatType seatType,
+                        @Param("minPrice") Double minPrice,
+                        @Param("maxPrice") Double maxPrice,
+                        @Param("seatNumber") String seatNumber,
+                        Pageable pageable);
 
-    @Query("SELECT MAX(s.columnNumber) FROM Seat s WHERE s.bus.id = :busId")
-    Integer findMaxColumnNumberByBusId(@Param("busId") Integer busId);
+        // Get seat with bus company validation
+        @Query("SELECT s FROM Seat s JOIN s.bus b WHERE s.id = :seatId AND b.company.id = :companyId")
+        Optional<Seat> findByIdAndCompanyId(@Param("seatId") Integer seatId, @Param("companyId") Integer companyId);
+
+        // Get seat for user (exclude DELETED)
+        @Query("SELECT s FROM Seat s WHERE s.id = :seatId AND s.status != 'DELETED'")
+        Optional<Seat> findByIdForUser(@Param("seatId") Integer seatId);
+
+        // Delete by bus ID (for bus deletion)
+        void deleteByBusId(Integer busId);
+
+        // Statistics queries
+        @Query("SELECT COUNT(s) FROM Seat s JOIN s.bus b WHERE b.company.id = :companyId AND s.status = :status")
+        long countByCompanyIdAndStatus(@Param("companyId") Integer companyId, @Param("status") SeatStatus status);
+
+        @Query("SELECT s.seatType, COUNT(s) FROM Seat s JOIN s.bus b WHERE b.company.id = :companyId GROUP BY s.seatType")
+        List<Object[]> countSeatTypesByCompanyId(@Param("companyId") Integer companyId);
 }

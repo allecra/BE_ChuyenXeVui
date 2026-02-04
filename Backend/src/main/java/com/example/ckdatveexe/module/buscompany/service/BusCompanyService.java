@@ -38,7 +38,6 @@ public class BusCompanyService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
-    private final PasswordResetRepository passwordResetRepository;
     private final BusRepository busRepository;
     private final SeatRepository seatRepository;
 
@@ -343,8 +342,21 @@ public class BusCompanyService {
     @Transactional
     public void resetBusCompanyPassword(String email) {
         // Tìm user theo email và role BUS_COMPANY
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản với email: " + email));
+        User user = userRepository.findByEmail(email).orElse(null);
+
+        // Nếu không tìm thấy user, kiểm tra trong bảng registration
+        if (user == null) {
+            BusCompanyRegistration registration = registrationRepository.findByEmailIgnoreCase(email).orElse(null);
+            if (registration != null && registration.getStatus() == RegistrationStatus.APPROVED) {
+                throw new IllegalArgumentException(
+                        "Email này đã được duyệt nhưng chưa có tài khoản. Vui lòng liên hệ admin để tạo tài khoản.");
+            } else if (registration != null) {
+                throw new IllegalArgumentException(
+                        "Email này đang trong quá trình đăng ký (trạng thái: " + registration.getStatus() + ")");
+            } else {
+                throw new ResourceNotFoundException("Không tìm thấy email này trong hệ thống");
+            }
+        }
 
         // Kiểm tra user có role BUS_COMPANY không
         boolean isBusCompany = user.getRoles().stream()
@@ -361,17 +373,27 @@ public class BusCompanyService {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
-        // Tạo bản ghi password reset để tracking
-        PasswordReset passwordReset = new PasswordReset();
-        passwordReset.setEmail(email);
-        passwordReset.setOtp(newPassword); // Lưu mật khẩu mới (chưa mã hóa để gửi email)
-        passwordReset.setExpiresAt(java.time.LocalDateTime.now().plusHours(24)); // Hết hạn sau 24h
-        passwordResetRepository.save(passwordReset);
+        // TODO: Tạo bản ghi password reset để tracking (tạm thời comment out)
+        /*
+         * try {
+         * PasswordReset passwordReset = new PasswordReset();
+         * passwordReset.setEmail(email);
+         * passwordReset.setOtp(newPassword); // Lưu mật khẩu mới (chưa mã hóa để gửi
+         * email)
+         * passwordReset.setExpiresAt(java.time.LocalDateTime.now().plusHours(24)); //
+         * Hết hạn sau 24h
+         * passwordResetRepository.save(passwordReset);
+         * } catch (Exception e) {
+         * log.warn("Could not save password reset record: {}", e.getMessage());
+         * // Không throw exception vì mật khẩu đã được reset thành công
+         * }
+         */
 
         // Gửi email thông báo mật khẩu mới
         try {
             String companyName = user.getBusCompany() != null ? user.getBusCompany().getCompanyName() : "Nhà xe";
             emailService.sendPasswordResetNotification(email, companyName, newPassword);
+            log.info("Password reset successful for bus company email: {}", email);
         } catch (Exception e) {
             log.error("Lỗi khi gửi email reset mật khẩu: ", e);
             throw new RuntimeException("Đã reset mật khẩu nhưng không thể gửi email thông báo");
@@ -694,5 +716,52 @@ public class BusCompanyService {
                 pageable);
 
         return buses.map(this::convertToBusResponse);
+    }
+
+    // New method for deleting bus company by admin
+    @Transactional
+    public void deleteBusCompanyByAdmin(Integer companyId, boolean hardDelete) {
+        BusCompany company = busCompanyRepository.findById(companyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhà xe với ID: " + companyId));
+
+        if (hardDelete) {
+            // Hard delete - xóa vĩnh viễn
+            // 1. Xóa tất cả ghế của các xe thuộc nhà xe
+            List<Bus> companyBuses = busRepository.findByCompanyId(companyId);
+            for (Bus bus : companyBuses) {
+                seatRepository.deleteByBusId(bus.getId());
+            }
+
+            // 2. Xóa tất cả xe của nhà xe
+            busRepository.deleteByCompanyId(companyId);
+
+            // 3. Tìm và xóa user account của nhà xe
+            userRepository.findByBusCompanyId(companyId)
+                    .forEach(user -> userRepository.delete(user));
+
+            // 4. Xóa nhà xe
+            busCompanyRepository.delete(company);
+
+            log.info("Hard deleted bus company with ID: {} and all related data", companyId);
+        } else {
+            // Soft delete - block user account
+            List<User> companyUsers = userRepository.findByBusCompanyId(companyId);
+            for (User user : companyUsers) {
+                user.setStatus(UserStatus.BLOCKED);
+                userRepository.save(user);
+
+                // Send email notification
+                try {
+                    emailService.sendAccountBlockNotification(
+                            user.getEmail(),
+                            company.getCompanyName(),
+                            "Tài khoản nhà xe đã bị tạm khóa bởi quản trị viên");
+                } catch (Exception e) {
+                    log.error("Lỗi khi gửi email thông báo khóa tài khoản: ", e);
+                }
+            }
+
+            log.info("Soft deleted (blocked) bus company with ID: {}", companyId);
+        }
     }
 }

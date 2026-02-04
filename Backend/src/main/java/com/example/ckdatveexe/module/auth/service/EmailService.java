@@ -692,4 +692,88 @@ public class EmailService {
                 companyName, companyName,
                 java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
     }
+
+    public void sendAccountBlockNotification(String toEmail, String companyName, String blockMessage) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+            helper.setSubject("Tài khoản nhà xe bị tạm khóa - CK DatVeXe");
+            helper.setText(buildAccountBlockNotificationContent(companyName, blockMessage), true);
+
+            mailSender.send(message);
+            log.info("Account block notification email sent successfully to: {}", toEmail);
+        } catch (MessagingException e) {
+            log.error("Failed to send account block notification email to: {}", toEmail, e);
+            throw new RuntimeException("Failed to send email", e);
+        }
+    }
+
+    private String buildAccountBlockNotificationContent(String companyName, String blockMessage) {
+        return String.format(
+                """
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <style>
+                                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                                .header { background: linear-gradient(135deg, #f44336 0%%, #d32f2f 100%%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                                .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                                .warning-box { background: #ffebee; padding: 20px; border-left: 4px solid #f44336; margin: 20px 0; border-radius: 5px; }
+                                .reason-box { background: #fff3e0; padding: 15px; border-left: 4px solid #ff9800; margin: 20px 0; border-radius: 5px; }
+                                .contact-box { background: #e3f2fd; padding: 15px; border-left: 4px solid #2196f3; margin: 20px 0; border-radius: 5px; }
+                                .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+                                .logo { font-size: 24px; font-weight: bold; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="container">
+                                <div class="header">
+                                    <div class="logo">🚌 CK DatVeXe</div>
+                                    <h2>⚠️ Thông báo tạm khóa tài khoản</h2>
+                                </div>
+                                <div class="content">
+                                    <h3>Kính chào %s,</h3>
+
+                                    <div class="warning-box">
+                                        <h4>🔒 Tài khoản bị tạm khóa</h4>
+                                        <p>Tài khoản nhà xe của bạn đã bị tạm thời khóa bởi quản trị viên hệ thống.</p>
+                                        <p><strong>Tên nhà xe:</strong> %s</p>
+                                        <p><strong>Thời gian khóa:</strong> %s</p>
+                                        <p><strong>Trạng thái:</strong> Tạm khóa</p>
+                                    </div>
+
+                                    <div class="reason-box">
+                                        <h4>📝 Lý do:</h4>
+                                        <p><em>%s</em></p>
+                                    </div>
+
+                                    <div class="contact-box">
+                                        <h4>📞 Liên hệ hỗ trợ</h4>
+                                        <p>Nếu bạn cho rằng đây là một sự nhầm lẫn hoặc cần làm rõ vấn đề, vui lòng liên hệ với đội ngũ hỗ trợ của chúng tôi:</p>
+                                        <ul>
+                                            <li><strong>Email:</strong> support@ckdatveexe.com</li>
+                                            <li><strong>Hotline:</strong> 1900-xxxx</li>
+                                            <li><strong>Thời gian hỗ trợ:</strong> 8:00 - 22:00 hàng ngày</li>
+                                        </ul>
+                                    </div>
+
+                                    <p>Chúng tôi rất tiếc về sự bất tiện này và sẵn sàng hỗ trợ bạn giải quyết vấn đề một cách nhanh chóng.</p>
+                                </div>
+                                <div class="footer">
+                                    <p>Trân trọng,<br><strong>Đội ngũ CK DatVeXe</strong></p>
+                                    <p>📧 Email: support@ckdatveexe.com | 📞 Hotline: 1900-xxxx</p>
+                                </div>
+                            </div>
+                        </body>
+                        </html>
+                        """,
+                companyName, companyName,
+                java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")),
+                blockMessage);
+    }
 }
