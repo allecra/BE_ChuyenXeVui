@@ -1,0 +1,337 @@
+{
+  "name": "CK_DatVeXe Database Schema",
+  "tables": [
+    {
+      "id": "T1",
+      "name": "users",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "first_name", "type": "VARCHAR(100)"},
+        {"name": "last_name", "type": "VARCHAR(100)"},
+        {"name": "email", "type": "VARCHAR", "unique": true},
+        {"name": "password", "type": "VARCHAR"},
+        {"name": "phone", "type": "VARCHAR(20)"},
+        {"name": "status", "type": "ENUM(ACTIVE, INACTIVE, DELETED, BANNED)"},
+        {"name": "bus_company_id", "type": "INT", "fk": "T2"}
+      ]
+    },
+    {
+      "id": "T2",
+      "name": "bus_companies",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "company_name", "type": "VARCHAR"},
+        {"name": "image", "type": "VARCHAR"},
+        {"name": "descriptions", "type": "LONGTEXT"}
+      ]
+    },
+    {
+      "id": "T3",
+      "name": "buses",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "name", "type": "VARCHAR"},
+        {"name": "descriptions", "type": "TEXT"},
+        {"name": "license_plate", "type": "VARCHAR(50)"},
+        {"name": "capacity", "type": "INT"},
+        {"name": "status", "type": "ENUM(ACTIVE, INACTIVE, MAINTENANCE, DELETED)"},
+        {"name": "bus_type", "type": "ENUM(GHE_NGOI, GHE_NAM)"},
+        {"name": "company_id", "type": "INT", "fk": "T2"}
+      ]
+    },
+    {
+      "id": "T4",
+      "name": "stations",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "name", "type": "VARCHAR"},
+        {"name": "image", "type": "VARCHAR"},
+        {"name": "wallpaper", "type": "VARCHAR"},
+        {"name": "descriptions", "type": "LONGTEXT"},
+        {"name": "location", "type": "VARCHAR"}
+      ]
+    },
+    {
+      "id": "T5",
+      "name": "routes",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "route_name", "type": "VARCHAR"},
+        {"name": "start_location", "type": "VARCHAR"},
+        {"name": "end_location", "type": "VARCHAR"},
+        {"name": "price", "type": "DOUBLE"},
+        {"name": "duration", "type": "INT"},
+        {"name": "distance", "type": "INT"},
+        {"name": "descriptions", "type": "TEXT"},
+        {"name": "status", "type": "ENUM(ACTIVE, INACTIVE)"},
+        {"name": "departure_station_id", "type": "INT", "fk": "T4"},
+        {"name": "arrival_station_id", "type": "INT", "fk": "T4"},
+        {"name": "bus_company_id", "type": "INT", "fk": "T2"}
+      ]
+    },
+    {
+      "id": "T6",
+      "name": "schedules",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "departure_time", "type": "TIMESTAMP"},
+        {"name": "arrival_time", "type": "TIMESTAMP"},
+        {"name": "available_seat", "type": "INT"},
+        {"name": "total_seats", "type": "INT"},
+        {"name": "status", "type": "ENUM(AVAILABLE, FULL, CANCELLED, COMPLETED)"},
+        {"name": "route_id", "type": "INT", "fk": "T5"},
+        {"name": "bus_id", "type": "INT", "fk": "T3"}
+      ]
+    },
+    {
+      "id": "T7",
+      "name": "seats",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "seat_number", "type": "VARCHAR(20)"},
+        {"name": "seat_type", "type": "ENUM(NORMAL, VIP, LUXURY)"},
+        {"name": "status", "type": "ENUM(AVAILABLE, BOOKED, UNAVAILABLE)"},
+        {"name": "price_for_seat_type", "type": "DOUBLE"},
+        {"name": "bus_id", "type": "INT", "fk": "T3"},
+        {"name": "row_num", "type": "INT"},
+        {"name": "column_num", "type": "INT"}
+      ]
+    },
+    {
+      "id": "T8",
+      "name": "tickets",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "departure_time", "type": "TIMESTAMP"},
+        {"name": "arrival_time", "type": "TIMESTAMP"},
+        {"name": "seat_type", "type": "ENUM(NORMAL, VIP, LUXURY)"},
+        {"name": "price", "type": "DOUBLE"},
+        {"name": "original_price", "type": "DOUBLE"},
+        {"name": "discount_amount", "type": "DOUBLE"},
+        {"name": "status", "type": "ENUM(BOOKED, CANCELLED, COMPLETED, REFUNDED)"},
+        {"name": "ticket_code", "type": "VARCHAR(20)", "unique": true},
+        {"name": "schedule_id", "type": "INT", "fk": "T6"},
+        {"name": "seat_id", "type": "INT", "fk": "T7"},
+        {"name": "user_id", "type": "INT", "fk": "T1"},
+        {"name": "discount_code_id", "type": "INT", "fk": "T9"}
+      ]
+    },
+    {
+      "id": "T9",
+      "name": "discount_codes",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "code", "type": "VARCHAR(50)", "unique": true},
+        {"name": "name", "type": "VARCHAR"},
+        {"name": "description", "type": "TEXT"},
+        {"name": "type", "type": "ENUM(PERCENTAGE, FIXED_AMOUNT)"},
+        {"name": "value", "type": "DECIMAL(10,2)"},
+        {"name": "max_discount_amount", "type": "DECIMAL(10,2)"},
+        {"name": "min_order_amount", "type": "DECIMAL(10,2)"},
+        {"name": "usage_limit", "type": "INT"},
+        {"name": "used_count", "type": "INT"},
+        {"name": "expired_at", "type": "TIMESTAMP"},
+        {"name": "created_by", "type": "INT", "fk": "T1"}
+      ]
+    },
+    {
+      "id": "T10",
+      "name": "discount_usage",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "user_id", "type": "INT", "fk": "T1"},
+        {"name": "ticket_id", "type": "INT", "fk": "T8"},
+        {"name": "discount_code_id", "type": "INT", "fk": "T9"},
+        {"name": "used_amount", "type": "DOUBLE"}
+      ]
+    },
+    {
+      "id": "T11",
+      "name": "payments",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "payment_method", "type": "ENUM(CREDIT_CARD, DEBIT_CARD, BANK_TRANSFER, WALLET, CASH)"},
+        {"name": "amount", "type": "DOUBLE"},
+        {"name": "status", "type": "ENUM(PENDING, COMPLETED, FAILED, REFUNDED)"},
+        {"name": "payment_provider_id", "type": "INT", "fk": "T12"},
+        {"name": "user_id", "type": "INT", "fk": "T1"},
+        {"name": "ticket_id", "type": "INT", "fk": "T8"}
+      ]
+    },
+    {
+      "id": "T12",
+      "name": "payment_providers",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "provider_name", "type": "VARCHAR"},
+        {"name": "provider_type", "type": "ENUM(STRIPE, PAYPAL, VNPAY, MOMO)"},
+        {"name": "api_endpoint", "type": "VARCHAR"}
+      ]
+    },
+    {
+      "id": "T13",
+      "name": "bus_reviews",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "rating", "type": "INT"},
+        {"name": "review", "type": "TEXT"},
+        {"name": "user_id", "type": "INT", "fk": "T1"},
+        {"name": "bus_id", "type": "INT", "fk": "T3"}
+      ]
+    },
+    {
+      "id": "T14",
+      "name": "bus_images",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "image_url", "type": "VARCHAR"},
+        {"name": "bus_id", "type": "INT", "fk": "T3"}
+      ]
+    },
+    {
+      "id": "T15",
+      "name": "drivers",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "full_name", "type": "VARCHAR(100)"},
+        {"name": "phone", "type": "VARCHAR(20)", "unique": true},
+        {"name": "email", "type": "VARCHAR(100)"},
+        {"name": "license_number", "type": "VARCHAR(50)", "unique": true},
+        {"name": "license_type", "type": "VARCHAR(20)"},
+        {"name": "license_expiry_date", "type": "DATE"},
+        {"name": "date_of_birth", "type": "DATE"},
+        {"name": "address", "type": "TEXT"},
+        {"name": "status", "type": "ENUM(ACTIVE, INACTIVE, ON_LEAVE, SUSPENDED, DELETED)"},
+        {"name": "current_bus_id", "type": "INT", "fk": "T3"}
+      ]
+    },
+    {
+      "id": "T16",
+      "name": "bus_history",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "departure_time", "type": "TIMESTAMP"},
+        {"name": "arrival_time", "type": "TIMESTAMP"},
+        {"name": "actual_departure_time", "type": "TIMESTAMP"},
+        {"name": "actual_arrival_time", "type": "TIMESTAMP"},
+        {"name": "status", "type": "ENUM(SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED)"},
+        {"name": "total_passengers", "type": "INT"},
+        {"name": "total_revenue", "type": "DOUBLE"},
+        {"name": "notes", "type": "TEXT"},
+        {"name": "bus_id", "type": "INT", "fk": "T3"},
+        {"name": "route_id", "type": "INT", "fk": "T5"},
+        {"name": "schedule_id", "type": "INT", "fk": "T6"},
+        {"name": "station_id", "type": "INT", "fk": "T4"}
+      ]
+    },
+    {
+      "id": "T17",
+      "name": "bus_station",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "bus_id", "type": "INT", "fk": "T3"},
+        {"name": "station_id", "type": "INT", "fk": "T4"},
+        {"name": "is_active", "type": "BOOLEAN"},
+        {"name": "notes", "type": "TEXT"}
+      ]
+    },
+    {
+      "id": "T18",
+      "name": "roles",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "role_name", "type": "ENUM(ROLE_USER, ROLE_ADMIN, ROLE_COMPANY_ADMIN, ROLE_DRIVER)"}
+      ]
+    },
+    {
+      "id": "T19",
+      "name": "user_role",
+      "columns": [
+        {"name": "user_id", "type": "INT", "pk": true, "fk": "T1"},
+        {"name": "role_id", "type": "INT", "pk": true, "fk": "T18"}
+      ]
+    },
+    {
+      "id": "T20",
+      "name": "refresh_tokens",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "token", "type": "TEXT"},
+        {"name": "user_id", "type": "INT", "fk": "T1"},
+        {"name": "expiry_date", "type": "TIMESTAMP"}
+      ]
+    },
+    {
+      "id": "T21",
+      "name": "password_reset",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "user_id", "type": "INT", "fk": "T1"},
+        {"name": "otp", "type": "VARCHAR"},
+        {"name": "expiry_date", "type": "TIMESTAMP"}
+      ]
+    },
+    {
+      "id": "T22",
+      "name": "bus_company_registration",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "company_name", "type": "VARCHAR"},
+        {"name": "registration_number", "type": "VARCHAR"},
+        {"name": "status", "type": "ENUM(PENDING, APPROVED, REJECTED)"},
+        {"name": "user_id", "type": "INT", "fk": "T1"}
+      ]
+    },
+    {
+      "id": "T23",
+      "name": "cancellation_policy",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "refund_percentage", "type": "INT"},
+        {"name": "cancellation_deadline", "type": "INT"},
+        {"name": "route_id", "type": "INT", "fk": "T5"}
+      ]
+    },
+    {
+      "id": "T24",
+      "name": "conversations",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "user_id", "type": "INT", "fk": "T1"},
+        {"name": "admin_id", "type": "INT", "fk": "T1"}
+      ]
+    },
+    {
+      "id": "T25",
+      "name": "messages",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "content", "type": "TEXT"},
+        {"name": "message_type", "type": "ENUM(TEXT, IMAGE, FILE)"},
+        {"name": "sender_id", "type": "INT", "fk": "T1"},
+        {"name": "conversation_id", "type": "INT", "fk": "T24"}
+      ]
+    },
+    {
+      "id": "T26",
+      "name": "articles",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "title", "type": "VARCHAR"},
+        {"name": "content", "type": "LONGTEXT"},
+        {"name": "image", "type": "VARCHAR"}
+      ]
+    },
+    {
+      "id": "T27",
+      "name": "banners",
+      "columns": [
+        {"name": "id", "type": "INT", "pk": true},
+        {"name": "title", "type": "VARCHAR"},
+        {"name": "image", "type": "VARCHAR"},
+        {"name": "link", "type": "VARCHAR"},
+        {"name": "status", "type": "ENUM(ACTIVE, INACTIVE)"}
+      ]
+    }
+  ]
+}

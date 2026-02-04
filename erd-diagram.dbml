@@ -1,0 +1,354 @@
+// ER Diagram for CK_DatVeXe Bus Booking System
+// Import to: dbdiagram.io, eraser.io
+
+Table users {
+  id int [primary key]
+  first_name varchar(100)
+  last_name varchar(100)
+  email varchar [unique]
+  password varchar
+  phone varchar(20)
+  status enum [note: "ACTIVE, INACTIVE, DELETED, BANNED"]
+  bus_company_id int
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table roles {
+  id int [primary key]
+  role_name enum [note: "ROLE_USER, ROLE_ADMIN, ROLE_COMPANY_ADMIN, ROLE_DRIVER"]
+}
+
+Table user_role {
+  user_id int [primary key]
+  role_id int [primary key]
+}
+
+Table bus_companies {
+  id int [primary key]
+  company_name varchar
+  image varchar
+  descriptions longtext
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table bus_company_registration {
+  id int [primary key]
+  company_name varchar
+  registration_number varchar
+  status enum [note: "PENDING, APPROVED, REJECTED"]
+  user_id int
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table buses {
+  id int [primary key]
+  name varchar
+  descriptions text
+  license_plate varchar(50)
+  capacity int
+  status enum [note: "ACTIVE, INACTIVE, MAINTENANCE, DELETED"]
+  bus_type enum [note: "GHE_NGOI, GHE_NAM"]
+  company_id int
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table bus_images {
+  id int [primary key]
+  image_url varchar
+  bus_id int
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table bus_reviews {
+  id int [primary key]
+  rating int
+  review text
+  user_id int
+  bus_id int
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table drivers {
+  id int [primary key]
+  full_name varchar(100)
+  phone varchar(20) [unique]
+  email varchar(100)
+  license_number varchar(50) [unique]
+  license_type varchar(20)
+  license_expiry_date date
+  date_of_birth date
+  address text
+  status enum [note: "ACTIVE, INACTIVE, ON_LEAVE, SUSPENDED, DELETED"]
+  current_bus_id int
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table stations {
+  id int [primary key]
+  name varchar
+  image varchar
+  wallpaper varchar
+  descriptions longtext
+  location varchar
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table bus_station {
+  id int [primary key]
+  bus_id int
+  station_id int
+  is_active boolean
+  notes text
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table routes {
+  id int [primary key]
+  route_name varchar
+  start_location varchar
+  end_location varchar
+  price double
+  duration int [note: "Minutes"]
+  distance int [note: "Kilometers"]
+  descriptions text
+  status enum [note: "ACTIVE, INACTIVE"]
+  departure_station_id int
+  arrival_station_id int
+  bus_company_id int
+  deleted_at timestamp
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table cancellation_policy {
+  id int [primary key]
+  refund_percentage int
+  cancellation_deadline int
+  route_id int
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table schedules {
+  id int [primary key]
+  departure_time timestamp
+  arrival_time timestamp
+  available_seat int
+  total_seats int
+  status enum [note: "AVAILABLE, FULL, CANCELLED, COMPLETED"]
+  route_id int
+  bus_id int
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table seats {
+  id int [primary key]
+  seat_number varchar(20)
+  seat_type enum [note: "NORMAL, VIP, LUXURY"]
+  status enum [note: "AVAILABLE, BOOKED, UNAVAILABLE"]
+  price_for_seat_type double
+  bus_id int
+  row_num int
+  column_num int
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table tickets {
+  id int [primary key]
+  departure_time timestamp
+  arrival_time timestamp
+  seat_type enum [note: "NORMAL, VIP, LUXURY"]
+  price double
+  original_price double
+  discount_amount double
+  status enum [note: "BOOKED, CANCELLED, COMPLETED, REFUNDED"]
+  ticket_code varchar(20) [unique]
+  schedule_id int
+  seat_id int
+  user_id int
+  discount_code_id int
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table discount_codes {
+  id int [primary key]
+  code varchar(50) [unique]
+  name varchar
+  description text
+  type enum [note: "PERCENTAGE, FIXED_AMOUNT"]
+  value decimal(10,2)
+  max_discount_amount decimal(10,2)
+  min_order_amount decimal(10,2)
+  usage_limit int
+  used_count int
+  expired_at timestamp
+  created_by int
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table discount_usage {
+  id int [primary key]
+  user_id int
+  ticket_id int
+  discount_code_id int
+  used_amount double
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table payments {
+  id int [primary key]
+  payment_method enum [note: "CREDIT_CARD, DEBIT_CARD, BANK_TRANSFER, WALLET, CASH"]
+  amount double
+  status enum [note: "PENDING, COMPLETED, FAILED, REFUNDED"]
+  payment_provider_id int
+  user_id int
+  ticket_id int
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table payment_providers {
+  id int [primary key]
+  provider_name varchar
+  provider_type enum [note: "STRIPE, PAYPAL, VNPAY, MOMO"]
+  api_endpoint varchar
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table bus_history {
+  id int [primary key]
+  departure_time timestamp
+  arrival_time timestamp
+  actual_departure_time timestamp
+  actual_arrival_time timestamp
+  status enum [note: "SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED"]
+  total_passengers int
+  total_revenue double
+  notes text
+  bus_id int
+  route_id int
+  schedule_id int
+  station_id int
+  created_at timestamp
+}
+
+Table conversations {
+  id int [primary key]
+  user_id int
+  admin_id int
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table messages {
+  id int [primary key]
+  content text
+  message_type enum [note: "TEXT, IMAGE, FILE"]
+  sender_id int
+  conversation_id int
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table articles {
+  id int [primary key]
+  title varchar
+  content longtext
+  image varchar
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table banners {
+  id int [primary key]
+  title varchar
+  image varchar
+  link varchar
+  status enum [note: "ACTIVE, INACTIVE"]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table refresh_tokens {
+  id int [primary key]
+  token text
+  user_id int
+  expiry_date timestamp
+  created_at timestamp
+}
+
+Table password_reset {
+  id int [primary key]
+  user_id int
+  otp varchar
+  expiry_date timestamp
+  created_at timestamp
+}
+
+// ===== RELATIONSHIPS =====
+
+Ref: user_role.user_id > users.id
+Ref: user_role.role_id > roles.id
+Ref: users.bus_company_id > bus_companies.id
+Ref: bus_company_registration.user_id > users.id
+
+Ref: buses.company_id > bus_companies.id
+Ref: bus_images.bus_id > buses.id
+Ref: bus_reviews.bus_id > buses.id
+Ref: bus_reviews.user_id > users.id
+Ref: drivers.current_bus_id > buses.id
+
+Ref: bus_station.bus_id > buses.id
+Ref: bus_station.station_id > stations.id
+
+Ref: routes.bus_company_id > bus_companies.id
+Ref: routes.departure_station_id > stations.id
+Ref: routes.arrival_station_id > stations.id
+Ref: cancellation_policy.route_id > routes.id
+
+Ref: schedules.route_id > routes.id
+Ref: schedules.bus_id > buses.id
+
+Ref: seats.bus_id > buses.id
+
+Ref: tickets.schedule_id > schedules.id
+Ref: tickets.seat_id > seats.id
+Ref: tickets.user_id > users.id
+Ref: tickets.discount_code_id > discount_codes.id
+
+Ref: discount_codes.created_by > users.id
+Ref: discount_usage.user_id > users.id
+Ref: discount_usage.ticket_id > tickets.id
+Ref: discount_usage.discount_code_id > discount_codes.id
+
+Ref: payments.user_id > users.id
+Ref: payments.ticket_id > tickets.id
+Ref: payments.payment_provider_id > payment_providers.id
+
+Ref: bus_history.bus_id > buses.id
+Ref: bus_history.route_id > routes.id
+Ref: bus_history.schedule_id > schedules.id
+Ref: bus_history.station_id > stations.id
+
+Ref: conversations.user_id > users.id
+Ref: conversations.admin_id > users.id
+Ref: messages.sender_id > users.id
+Ref: messages.conversation_id > conversations.id
+
+Ref: refresh_tokens.user_id > users.id
+Ref: password_reset.user_id > users.id
