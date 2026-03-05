@@ -333,11 +333,11 @@ public class RouteService {
     private RouteResponse convertToUserResponse(Route route) {
         // Count active schedules and buses for this route
         long activeScheduleCount = route.getSchedules() != null ? route.getSchedules().stream()
-                .filter(s -> s.getStatus() == ScheduleStatus.AVAILABLE)
+                .filter(s -> s.getStatus() == ScheduleStatus.ACTIVE)
                 .count() : 0;
 
         long activeBusCount = route.getSchedules() != null ? route.getSchedules().stream()
-                .filter(s -> s.getStatus() == ScheduleStatus.AVAILABLE && s.getBus().getStatus() == BusStatus.ACTIVE)
+                .filter(s -> s.getStatus() == ScheduleStatus.ACTIVE && s.getBus().getStatus() == BusStatus.ACTIVE)
                 .map(s -> s.getBus().getId())
                 .distinct()
                 .count() : 0;

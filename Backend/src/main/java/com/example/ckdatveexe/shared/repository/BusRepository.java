@@ -78,6 +78,6 @@ public interface BusRepository extends JpaRepository<Bus, Integer> {
         List<Bus> findBusesByRouteId(@Param("routeId") Integer routeId);
 
         // Tìm xe active theo route (thông qua schedules)
-        @Query("SELECT DISTINCT s.bus FROM Schedule s WHERE s.route.id = :routeId AND s.bus.status = 'ACTIVE' AND s.status = 'AVAILABLE'")
+        @Query("SELECT DISTINCT s.bus FROM Schedule s WHERE s.route.id = :routeId AND s.bus.status = 'ACTIVE' AND s.status = 'ACTIVE'")
         List<Bus> findActiveBusesByRouteId(@Param("routeId") Integer routeId);
 }
