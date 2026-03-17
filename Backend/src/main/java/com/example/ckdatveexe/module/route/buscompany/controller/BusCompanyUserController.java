@@ -1,8 +1,8 @@
-package com.example.ckdatveexe.module.buscompany.controller;
+package com.example.ckdatveexe.module.route.buscompany.controller;
 
 import com.example.ckdatveexe.exception.ResourceNotFoundException;
-import com.example.ckdatveexe.module.buscompany.dto.BusCompanyResponse;
-import com.example.ckdatveexe.module.buscompany.service.BusCompanyService;
+import com.example.ckdatveexe.module.route.buscompany.dto.BusCompanyResponse;
+import com.example.ckdatveexe.module.route.buscompany.service.BusCompanyService;
 import com.example.ckdatveexe.shared.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;

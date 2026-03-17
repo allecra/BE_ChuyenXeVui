@@ -1,13 +1,13 @@
-package com.example.ckdatveexe.module.buscompany.controller;
+package com.example.ckdatveexe.module.route.buscompany.controller;
 
 import com.example.ckdatveexe.config.UserDetailsImpl;
 import com.example.ckdatveexe.exception.ResourceNotFoundException;
 import com.example.ckdatveexe.module.bus.dto.BusResponse;
 import com.example.ckdatveexe.module.bus.dto.BusSearchRequest;
-import com.example.ckdatveexe.module.buscompany.dto.BusCompanyResponse;
-import com.example.ckdatveexe.module.buscompany.dto.BusCompanyUpdateRequest;
-import com.example.ckdatveexe.module.buscompany.dto.ChangePasswordRequest;
-import com.example.ckdatveexe.module.buscompany.service.BusCompanyService;
+import com.example.ckdatveexe.module.route.buscompany.dto.BusCompanyResponse;
+import com.example.ckdatveexe.module.route.buscompany.dto.BusCompanyUpdateRequest;
+import com.example.ckdatveexe.module.route.buscompany.dto.ChangePasswordRequest;
+import com.example.ckdatveexe.module.route.buscompany.service.BusCompanyService;
 import com.example.ckdatveexe.shared.dto.ApiResponse;
 import com.example.ckdatveexe.shared.entity.BusStatus;
 import io.swagger.v3.oas.annotations.Operation;

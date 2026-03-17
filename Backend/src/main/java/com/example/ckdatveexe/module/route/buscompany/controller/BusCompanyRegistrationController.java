@@ -1,7 +1,7 @@
-package com.example.ckdatveexe.module.buscompany.controller;
+package com.example.ckdatveexe.module.route.buscompany.controller;
 
-import com.example.ckdatveexe.module.buscompany.dto.BusCompanyRegistrationRequest;
-import com.example.ckdatveexe.module.buscompany.service.BusCompanyService;
+import com.example.ckdatveexe.module.route.buscompany.dto.BusCompanyRegistrationRequest;
+import com.example.ckdatveexe.module.route.buscompany.service.BusCompanyService;
 import com.example.ckdatveexe.shared.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;

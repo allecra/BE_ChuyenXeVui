@@ -1,4 +1,4 @@
-package com.example.ckdatveexe.module.buscompany.dto;
+package com.example.ckdatveexe.module.route.buscompany.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

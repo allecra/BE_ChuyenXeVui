@@ -1,12 +1,12 @@
-package com.example.ckdatveexe.module.buscompany.service;
+package com.example.ckdatveexe.module.route.buscompany.service;
 
 import com.example.ckdatveexe.exception.ResourceNotFoundException;
 import com.example.ckdatveexe.module.auth.service.EmailService;
 import com.example.ckdatveexe.module.bus.dto.BusResponse;
 import com.example.ckdatveexe.module.bus.dto.BusSearchRequest;
 import com.example.ckdatveexe.module.bus.dto.SeatResponse;
-import com.example.ckdatveexe.module.buscompany.dto.*;
 import com.example.ckdatveexe.module.media.service.CloudinaryService;
+import com.example.ckdatveexe.module.route.buscompany.dto.*;
 import com.example.ckdatveexe.shared.entity.*;
 import com.example.ckdatveexe.shared.repository.*;
 import lombok.RequiredArgsConstructor;

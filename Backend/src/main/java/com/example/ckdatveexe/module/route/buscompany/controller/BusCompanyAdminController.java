@@ -1,12 +1,12 @@
-package com.example.ckdatveexe.module.buscompany.controller;
+package com.example.ckdatveexe.module.route.buscompany.controller;
 
 import com.example.ckdatveexe.exception.ResourceNotFoundException;
 import com.example.ckdatveexe.module.bus.dto.BusResponse;
 import com.example.ckdatveexe.module.bus.dto.BusSearchRequest;
 import com.example.ckdatveexe.module.bus.dto.DeleteBusRequest;
-import com.example.ckdatveexe.module.buscompany.dto.BusCompanyResponse;
-import com.example.ckdatveexe.module.buscompany.dto.BusCompanyUpdateRequest;
-import com.example.ckdatveexe.module.buscompany.service.BusCompanyService;
+import com.example.ckdatveexe.module.route.buscompany.dto.BusCompanyResponse;
+import com.example.ckdatveexe.module.route.buscompany.dto.BusCompanyUpdateRequest;
+import com.example.ckdatveexe.module.route.buscompany.service.BusCompanyService;
 import com.example.ckdatveexe.shared.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -443,7 +443,7 @@ public class BusCompanyAdminController {
         @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<ApiResponse<Void>> deleteBusCompany(
                         @PathVariable Integer companyId,
-                        @RequestBody(required = false) com.example.ckdatveexe.module.buscompany.dto.DeleteBusCompanyRequest request,
+                        @RequestBody(required = false) com.example.ckdatveexe.module.route.buscompany.dto.DeleteBusCompanyRequest request,
                         Authentication authentication) {
 
                 log.info("👑 [BUS COMPANY ADMIN] DELETE /api/admin/bus-company/{} - Delete bus company", companyId);
@@ -452,7 +452,7 @@ public class BusCompanyAdminController {
 
                 try {
                         if (request == null) {
-                                request = new com.example.ckdatveexe.module.buscompany.dto.DeleteBusCompanyRequest();
+                                request = new com.example.ckdatveexe.module.route.buscompany.dto.DeleteBusCompanyRequest();
                         }
 
                         busCompanyService.deleteBusCompanyByAdmin(companyId, request.isHardDelete());
