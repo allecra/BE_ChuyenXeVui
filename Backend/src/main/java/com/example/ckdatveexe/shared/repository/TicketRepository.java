@@ -3,6 +3,7 @@ package com.example.ckdatveexe.shared.repository;
 import com.example.ckdatveexe.shared.entity.Ticket;
 import com.example.ckdatveexe.shared.entity.TicketStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -12,7 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface TicketRepository extends JpaRepository<Ticket, Integer> {
+public interface TicketRepository extends JpaRepository<Ticket, Integer>, JpaSpecificationExecutor<Ticket> {
 
         // Find by ticket code
         Optional<Ticket> findByTicketCode(String ticketCode);
@@ -68,4 +69,26 @@ public interface TicketRepository extends JpaRepository<Ticket, Integer> {
                         com.example.ckdatveexe.shared.entity.Seat seat,
                         com.example.ckdatveexe.shared.entity.Schedule schedule,
                         TicketStatus status);
+
+        // Check if user has used a specific bus
+        @Query("SELECT COUNT(t) > 0 FROM Ticket t WHERE t.user.id = :userId AND t.seat.bus.id = :busId AND t.status = :status")
+        boolean existsByUserIdAndSeatBusIdAndStatus(@Param("userId") Integer userId,
+                        @Param("busId") Integer busId,
+                        @Param("status") TicketStatus status);
+
+        // Check if user has any confirmed tickets (for first-time user discount check)
+        boolean existsByUserIdAndStatus(Integer userId, TicketStatus status);
+
+        // Find tickets by date range
+        List<Ticket> findByCreatedAtBetween(LocalDateTime fromDate, LocalDateTime toDate);
+
+        // Find expired tickets older than specified time
+        @Query("SELECT t FROM Ticket t WHERE t.status = 'EXPIRED' AND t.paymentDeadline < :cutoffTime")
+        List<Ticket> findExpiredTicketsOlderThan(@Param("cutoffTime") LocalDateTime cutoffTime);
+
+        // Check if tickets exist for schedule and bus with specific status
+        boolean existsByScheduleIdAndSeatBusIdAndStatus(Integer scheduleId, Integer busId, TicketStatus status);
+
+        // Find tickets by schedule, bus and status
+        List<Ticket> findByScheduleIdAndSeatBusIdAndStatus(Integer scheduleId, Integer busId, TicketStatus status);
 }
