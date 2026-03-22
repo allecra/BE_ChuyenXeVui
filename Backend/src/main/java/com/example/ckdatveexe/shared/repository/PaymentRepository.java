@@ -2,11 +2,14 @@ package com.example.ckdatveexe.shared.repository;
 
 import com.example.ckdatveexe.shared.entity.Payment;
 import com.example.ckdatveexe.shared.entity.PaymentStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +32,9 @@ public interface PaymentRepository extends JpaRepository<Payment, Integer> {
     // Find by status
     List<Payment> findByStatus(PaymentStatus status);
 
+    // Find by status with pagination
+    Page<Payment> findByStatus(PaymentStatus status, Pageable pageable);
+
     // Find expired payments
     List<Payment> findByStatusAndExpiredAtBefore(PaymentStatus status, LocalDateTime expiredAt);
 
@@ -39,6 +45,11 @@ public interface PaymentRepository extends JpaRepository<Payment, Integer> {
     @Query("SELECT p FROM Payment p WHERE p.createdAt >= :startDate AND p.createdAt <= :endDate ORDER BY p.createdAt DESC")
     List<Payment> findByDateRange(@Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate);
+
+    // Find payments by date range with pagination
+    Page<Payment> findByCreatedAtBetween(LocalDateTime fromDate, LocalDateTime toDate, Pageable pageable);
+
+    List<Payment> findByCreatedAtBetween(LocalDateTime fromDate, LocalDateTime toDate);
 
     // Find successful payments by user
     @Query("SELECT p FROM Payment p WHERE p.user.id = :userId AND p.status = 'COMPLETED' ORDER BY p.paidAt DESC")
@@ -65,4 +76,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Integer> {
     // Check if user has pending payment for ticket
     @Query("SELECT COUNT(p) > 0 FROM Payment p WHERE p.user.id = :userId AND p.ticket.id = :ticketId AND p.status IN ('PENDING', 'PROCESSING')")
     boolean hasPendingPaymentForTicket(@Param("userId") Integer userId, @Param("ticketId") Integer ticketId);
+
+    // Find payments by status and amount condition
+    List<Payment> findByStatusAndAmountLessThan(PaymentStatus status, Double amount);
 }

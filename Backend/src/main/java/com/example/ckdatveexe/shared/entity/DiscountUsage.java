@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "discount_usage")
+@Table(name = "discount_usages")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -20,25 +20,22 @@ public class DiscountUsage {
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "discount_code_id", nullable = false)
     private DiscountCode discountCode;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ticket_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ticket_id")
     private Ticket ticket;
 
-    @Column(name = "discount_amount", nullable = false, precision = 10, scale = 2)
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal orderAmount;
+
+    @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal discountAmount;
-
-    @Column(name = "original_amount", nullable = false, precision = 10, scale = 2)
-    private BigDecimal originalAmount;
-
-    @Column(name = "final_amount", nullable = false, precision = 10, scale = 2)
-    private BigDecimal finalAmount;
 
     @CreationTimestamp
     @Column(name = "used_at")

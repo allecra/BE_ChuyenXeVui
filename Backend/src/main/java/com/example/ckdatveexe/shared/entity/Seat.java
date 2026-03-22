@@ -55,4 +55,7 @@ public class Seat {
     // Relationships
     @OneToMany(mappedBy = "seat", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Ticket> tickets;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "current_ticket_id")
+    private Ticket ticket;
 }

@@ -2,14 +2,19 @@ package com.example.ckdatveexe.module.ticket.service;
 
 import com.example.ckdatveexe.exception.ResourceNotFoundException;
 import com.example.ckdatveexe.module.ticket.dto.*;
+import com.example.ckdatveexe.module.discount.service.DiscountService;
+import com.example.ckdatveexe.module.discount.dto.ApplyDiscountRequest;
+import com.example.ckdatveexe.module.discount.dto.ApplyDiscountResponse;
 import com.example.ckdatveexe.shared.entity.*;
 import com.example.ckdatveexe.shared.repository.*;
+import com.example.ckdatveexe.shared.util.PaymentProviderUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -32,6 +37,8 @@ public class TicketService {
     private final TicketEmailService ticketEmailService;
     private final CancellationPolicyRepository cancellationPolicyRepository;
     private final PaymentRepository paymentRepository;
+    private final DiscountService discountService;
+    private final PaymentProviderUtil paymentProviderUtil;
 
     private static final int PAYMENT_TIMEOUT_MINUTES = 5; // 5 phút để thanh toán
 
@@ -61,9 +68,40 @@ public class TicketService {
         ticket.setUser(user);
         ticket.setStatus(TicketStatus.PENDING);
         ticket.setTicketCode(generateTicketCode());
-        ticket.setPrice(calculatePrice(seat, schedule));
-        ticket.setOriginalPrice(ticket.getPrice());
+
+        // Calculate base price
+        Double basePrice = calculatePrice(seat, schedule);
+        ticket.setOriginalPrice(basePrice);
+        ticket.setPrice(basePrice);
         ticket.setDiscountAmount(0.0);
+
+        // Apply discount if provided
+        if (request.getDiscountCode() != null && !request.getDiscountCode().trim().isEmpty()) {
+            try {
+                ApplyDiscountRequest discountRequest = new ApplyDiscountRequest();
+                discountRequest.setDiscountCode(request.getDiscountCode());
+                discountRequest.setOrderAmount(BigDecimal.valueOf(basePrice));
+                discountRequest.setRouteId(schedule.getRoute().getId());
+                discountRequest.setCompanyId(schedule.getRoute().getBusCompany().getId());
+
+                ApplyDiscountResponse discountResponse = discountService.applyDiscount(discountRequest, userId);
+
+                if (discountResponse.isValid()) {
+                    ticket.setDiscountAmount(discountResponse.getDiscountAmount().doubleValue());
+                    ticket.setPrice(discountResponse.getFinalAmount().doubleValue());
+                    // Set discount code reference (will be set after saving discount usage)
+                    log.info("💰 Discount applied: {} VND (Code: {})",
+                            discountResponse.getDiscountAmount(), request.getDiscountCode());
+                } else {
+                    log.warn("⚠️ Invalid discount code: {} - {}", request.getDiscountCode(),
+                            discountResponse.getMessage());
+                    // Continue without discount but log the issue
+                }
+            } catch (Exception e) {
+                log.warn("⚠️ Error applying discount code: {} - {}", request.getDiscountCode(), e.getMessage());
+                // Continue without discount
+            }
+        }
 
         // Set passenger info (auto-fill from user profile if not provided)
         setPassengerInfo(ticket, user, request.getPassengerInfo());
@@ -279,6 +317,18 @@ public class TicketService {
 
         ticketRepository.save(ticket);
         seatRepository.save(ticket.getSeat());
+
+        // 4. Record discount usage if discount was applied
+        if (ticket.getDiscountAmount() != null && ticket.getDiscountAmount() > 0) {
+            try {
+                // Find the discount code that was used (this would need to be stored in ticket)
+                // For now, we'll skip this as we need to modify the ticket entity to store
+                // discount_code_id
+                log.info("💰 Discount was applied: {} VND", ticket.getDiscountAmount());
+            } catch (Exception e) {
+                log.warn("⚠️ Error recording discount usage: {}", e.getMessage());
+            }
+        }
 
         // Send payment success email
         ticketEmailService.sendPaymentSuccessNotification(ticket);
@@ -909,7 +959,7 @@ public class TicketService {
         refundPayment.setTicket(ticket);
         refundPayment.setAmount(refundAmount);
         refundPayment.setPaymentMethod(PaymentMethod.BANK_TRANSFER);
-        refundPayment.setPaymentProvider(PaymentProvider.SYSTEM);
+        refundPayment.setPaymentProvider(paymentProviderUtil.getSystemProvider());
         refundPayment.setStatus(PaymentStatus.PENDING);
         refundPayment.setTransactionId("REFUND_" + ticket.getTicketCode() + "_" + System.currentTimeMillis());
         refundPayment.setDescription("Hoàn tiền hủy vé: " + ticket.getTicketCode());

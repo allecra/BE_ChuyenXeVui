@@ -2,5 +2,8 @@ package com.example.ckdatveexe.shared.entity;
 
 public enum PaymentMethod {
     CASH,
-    ONLINE
+    ONLINE,
+    BANK_TRANSFER,
+    MOMO,
+    SEPAY
 }

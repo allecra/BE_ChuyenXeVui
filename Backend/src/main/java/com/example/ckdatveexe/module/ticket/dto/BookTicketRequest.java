@@ -28,6 +28,9 @@ public class BookTicketRequest {
     @Schema(description = "Session ID của user", example = "user_session_123")
     private String sessionId;
 
+    @Schema(description = "Mã giảm giá (tùy chọn)", example = "DISCOUNT10")
+    private String discountCode;
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

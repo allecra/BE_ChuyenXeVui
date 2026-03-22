@@ -4,6 +4,7 @@ import com.example.ckdatveexe.exception.ResourceNotFoundException;
 import com.example.ckdatveexe.module.ticket.dto.*;
 import com.example.ckdatveexe.shared.entity.*;
 import com.example.ckdatveexe.shared.repository.*;
+import com.example.ckdatveexe.shared.util.PaymentProviderUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ public class TicketCancellationService {
     private final ScheduleRepository scheduleRepository;
     private final CancellationPolicyRepository cancellationPolicyRepository;
     private final PaymentRepository paymentRepository;
+    private final PaymentProviderUtil paymentProviderUtil;
 
     @Transactional
     public TicketCancellationResponse cancelTicket(TicketCancellationRequest request, Integer userId) {
@@ -269,7 +271,7 @@ public class TicketCancellationService {
         refundPayment.setTicket(ticket);
         refundPayment.setAmount(refundAmount);
         refundPayment.setPaymentMethod(PaymentMethod.BANK_TRANSFER);
-        refundPayment.setPaymentProvider(PaymentProvider.SYSTEM);
+        refundPayment.setPaymentProvider(paymentProviderUtil.getSystemProvider());
         refundPayment.setStatus(PaymentStatus.PENDING);
         refundPayment.setTransactionId("REFUND_" + ticket.getTicketCode() + "_" + System.currentTimeMillis());
         refundPayment.setDescription("Hoàn tiền hủy vé: " + ticket.getTicketCode());

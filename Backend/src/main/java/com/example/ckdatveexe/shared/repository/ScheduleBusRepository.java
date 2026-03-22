@@ -111,4 +111,14 @@ public interface ScheduleBusRepository extends JpaRepository<ScheduleBus, Intege
             GROUP BY s.id
             """)
     List<Object[]> getTotalCapacityByScheduleIds(@Param("scheduleIds") List<Integer> scheduleIds);
+
+    // Check bus availability for schedule time conflict
+    @Query("SELECT COUNT(sb) > 0 FROM ScheduleBus sb WHERE sb.bus.id = :busId " +
+            "AND sb.status != 'CANCELLED' " +
+            "AND ((sb.schedule.departureTime <= :departureTime AND sb.schedule.arrivalTime > :departureTime) " +
+            "OR (sb.schedule.departureTime < :arrivalTime AND sb.schedule.arrivalTime >= :arrivalTime) " +
+            "OR (sb.schedule.departureTime >= :departureTime AND sb.schedule.arrivalTime <= :arrivalTime))")
+    boolean existsByBusIdAndScheduleTimeConflict(@Param("busId") Integer busId,
+            @Param("departureTime") LocalDateTime departureTime,
+            @Param("arrivalTime") LocalDateTime arrivalTime);
 }

@@ -77,4 +77,14 @@ public class Route {
 
     @OneToMany(mappedBy = "route", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<CancellationPolicy> cancellationPolicies;
+
+    // Convenience methods for backward compatibility
+    public String getDepartureLocation() {
+        return this.startLocation;
+    }
+
+    public String getArrivalLocation() {
+        return this.endLocation;
+    }
+
 }

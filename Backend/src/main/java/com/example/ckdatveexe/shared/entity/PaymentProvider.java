@@ -8,7 +8,6 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Entity
 @Table(name = "payment_providers")
@@ -20,7 +19,7 @@ public class PaymentProvider {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "provider_name", nullable = false)
+    @Column(name = "provider_name", nullable = false, unique = true)
     private String providerName;
 
     @Enumerated(EnumType.STRING)
@@ -30,6 +29,18 @@ public class PaymentProvider {
     @Column(name = "api_endpoint", nullable = false)
     private String apiEndpoint;
 
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
+
+    @Column(name = "api_key")
+    private String apiKey;
+
+    @Column(name = "secret_key")
+    private String secretKey;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -37,8 +48,4 @@ public class PaymentProvider {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    // Relationships
-    @OneToMany(mappedBy = "paymentProvider", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Payment> payments;
 }
