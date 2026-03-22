@@ -32,23 +32,37 @@ public class PaymentDataInitializer implements CommandLineRunner {
                 return;
             }
 
+            // Create SYSTEM provider (for internal refunds)
+            PaymentProvider systemProvider = new PaymentProvider();
+            systemProvider.setProviderName("SYSTEM");
+            systemProvider.setProviderType(ProviderType.BANK_TRANSFER);
+            systemProvider.setApiEndpoint("internal://system");
+            systemProvider.setDescription("Internal System Provider for Refunds");
+            systemProvider.setIsActive(true);
+
             // Create MoMo provider
             PaymentProvider momoProvider = new PaymentProvider();
             momoProvider.setProviderName("MOMO");
             momoProvider.setProviderType(ProviderType.E_WALLET);
             momoProvider.setApiEndpoint("https://test-payment.momo.vn/v2/gateway/api/create");
+            momoProvider.setDescription("MoMo E-Wallet Payment Gateway");
+            momoProvider.setIsActive(true);
 
             // Create SePay provider
             PaymentProvider sepayProvider = new PaymentProvider();
             sepayProvider.setProviderName("SEPAY");
             sepayProvider.setProviderType(ProviderType.QR_CODE);
             sepayProvider.setApiEndpoint("https://my.sepay.vn/userapi");
+            sepayProvider.setDescription("SePay QR Code Payment Gateway");
+            sepayProvider.setIsActive(true);
 
             // Save providers
+            paymentProviderRepository.save(systemProvider);
             paymentProviderRepository.save(momoProvider);
             paymentProviderRepository.save(sepayProvider);
 
             log.info("✅ [INIT] Payment providers initialized successfully");
+            log.info("💳 [INIT] - System provider created");
             log.info("💳 [INIT] - MoMo E-Wallet provider created");
             log.info("💳 [INIT] - SePay QR Code provider created");
 

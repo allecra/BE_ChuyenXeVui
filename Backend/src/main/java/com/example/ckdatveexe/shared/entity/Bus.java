@@ -81,4 +81,9 @@ public class Bus {
 
     @OneToMany(mappedBy = "currentBus", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Driver> drivers;
+
+    // Convenience method for backward compatibility
+    public BusCompany getBusCompany() {
+        return this.company;
+    }
 }

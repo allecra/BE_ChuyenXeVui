@@ -9,7 +9,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Entity
 @Table(name = "discount_codes")
@@ -24,7 +23,7 @@ public class DiscountCode {
     @Column(nullable = false, unique = true, length = 50)
     private String code;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 200)
     private String name;
 
     @Column(columnDefinition = "TEXT")
@@ -32,48 +31,52 @@ public class DiscountCode {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private DiscountType type = DiscountType.PERCENTAGE;
+    private DiscountType discountType;
 
     @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal value;
+    private BigDecimal discountValue;
 
-    @Column(name = "max_discount_amount", precision = 10, scale = 2)
+    @Column(precision = 12, scale = 2)
     private BigDecimal maxDiscountAmount;
 
-    @Column(name = "min_order_amount", precision = 10, scale = 2)
+    @Column(precision = 12, scale = 2)
     private BigDecimal minOrderAmount;
 
-    @Column(name = "usage_limit", nullable = false)
-    private Integer usageLimit = 0;
-
-    @Column(name = "used_count", nullable = false)
-    private Integer usedCount = 0;
-
-    @Column(name = "usage_limit_per_user", nullable = false)
-    private Integer usageLimitPerUser = 1;
-
-    @Column(name = "start_date", nullable = false)
+    @Column(nullable = false)
     private LocalDateTime startDate;
 
-    @Column(name = "end_date", nullable = false)
+    @Column(nullable = false)
     private LocalDateTime endDate;
+
+    @Column(nullable = false)
+    private Integer usageLimit;
+
+    @Column(nullable = false)
+    private Integer usedCount = 0;
+
+    @Column(nullable = false)
+    private Integer usageLimitPerUser = 1;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private DiscountCodeStatus status = DiscountCodeStatus.ACTIVE;
+    private DiscountStatus status = DiscountStatus.ACTIVE;
 
-    @Column(name = "applicable_routes", columnDefinition = "JSON")
-    private String applicableRoutes;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private DiscountScope scope = DiscountScope.PLATFORM;
 
-    @Column(name = "applicable_bus_companies", columnDefinition = "JSON")
-    private String applicableBusCompanies;
-
-    @Column(name = "is_first_time_user_only", nullable = false)
-    private Boolean isFirstTimeUserOnly = false;
-
+    // For company-specific discounts
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by")
-    private User createdBy;
+    @JoinColumn(name = "bus_company_id")
+    private BusCompany busCompany;
+
+    // For route-specific discounts
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "route_id")
+    private Route route;
+
+    @Column(columnDefinition = "TEXT")
+    private String terms;
 
     @CreationTimestamp
     @Column(name = "created_at")
@@ -83,10 +86,44 @@ public class DiscountCode {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // Relationships
-    @OneToMany(mappedBy = "discountCode", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Ticket> tickets;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
+    private User createdBy;
 
-    @OneToMany(mappedBy = "discountCode", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<DiscountUsage> discountUsages;
+    // Helper methods
+    public boolean isActive() {
+        LocalDateTime now = LocalDateTime.now();
+        return status == DiscountStatus.ACTIVE &&
+                now.isAfter(startDate) &&
+                now.isBefore(endDate) &&
+                usedCount < usageLimit;
+    }
+
+    public boolean canBeUsedBy(User user) {
+        if (!isActive())
+            return false;
+
+        // Check user-specific usage limit
+        // This would require a separate entity to track user usage
+        // For now, we'll assume it's valid
+        return true;
+    }
+
+    public BigDecimal calculateDiscount(BigDecimal orderAmount) {
+        if (orderAmount.compareTo(minOrderAmount != null ? minOrderAmount : BigDecimal.ZERO) < 0) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal discount;
+        if (discountType == DiscountType.PERCENTAGE) {
+            discount = orderAmount.multiply(discountValue).divide(BigDecimal.valueOf(100));
+            if (maxDiscountAmount != null && discount.compareTo(maxDiscountAmount) > 0) {
+                discount = maxDiscountAmount;
+            }
+        } else {
+            discount = discountValue;
+        }
+
+        return discount.min(orderAmount);
+    }
 }

@@ -86,4 +86,16 @@ public interface SeatRepository extends JpaRepository<Seat, Integer> {
 
         @Query("SELECT s.seatType, COUNT(s) FROM Seat s JOIN s.bus b WHERE b.company.id = :companyId GROUP BY s.seatType")
         List<Object[]> countSeatTypesByCompanyId(@Param("companyId") Integer companyId);
+
+        // Find seat by bus and seat number
+        Optional<Seat> findByBusIdAndSeatNumber(Integer busId, String seatNumber);
+
+        // Find seats by ticket ID
+        @Query("SELECT s FROM Seat s WHERE s.ticket.id = :ticketId")
+        List<Seat> findByTicketId(@Param("ticketId") Integer ticketId);
+
+        // Find seat by schedule and seat number
+        @Query("SELECT s FROM Seat s WHERE s.bus.id IN (SELECT sb.bus.id FROM ScheduleBus sb WHERE sb.schedule.id = :scheduleId) AND s.seatNumber = :seatNumber")
+        Optional<Seat> findByScheduleIdAndSeatNumber(@Param("scheduleId") Integer scheduleId,
+                        @Param("seatNumber") String seatNumber);
 }

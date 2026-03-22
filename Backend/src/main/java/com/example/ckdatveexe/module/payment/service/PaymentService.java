@@ -76,7 +76,7 @@ public class PaymentService {
             Payment payment = new Payment();
             payment.setTransactionId(transactionId);
             payment.setPaymentMethod(PaymentMethod.ONLINE);
-            payment.setAmount(request.getAmount());
+            payment.setAmount(java.math.BigDecimal.valueOf(request.getAmount()));
             payment.setCurrency("VND");
             payment.setStatus(PaymentStatus.PENDING);
             payment.setDescription(request.getDescription());

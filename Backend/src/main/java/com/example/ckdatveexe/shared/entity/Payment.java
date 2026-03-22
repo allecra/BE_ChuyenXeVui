@@ -76,4 +76,20 @@ public class Payment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ticket_id")
     private Ticket ticket;
+
+    @Column(name = "payment_details", columnDefinition = "TEXT")
+    private String paymentDetails;
+
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
+    // Method to set amount as BigDecimal
+    public void setAmount(java.math.BigDecimal amount) {
+        this.amount = amount.doubleValue();
+    }
+
+    // Method to get amount as BigDecimal
+    public java.math.BigDecimal getAmountAsBigDecimal() {
+        return java.math.BigDecimal.valueOf(this.amount);
+    }
 }
