@@ -14,7 +14,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DeletedUser {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -22,38 +21,62 @@ public class DeletedUser {
     @Column(name = "original_user_id", nullable = false)
     private Integer originalUserId;
 
+    @Column(name = "first_name", nullable = false, length = 100)
+    private String firstName;
+
+    @Column(name = "last_name", nullable = false, length = 100)
+    private String lastName;
+
     @Column(nullable = false)
     private String email;
 
-    @Column(name = "first_name")
-    private String firstName;
+    @Column(length = 20)
+    private String phone;
 
-    @Column(name = "last_name")
-    private String lastName;
+    @Column(name = "id_card", length = 20)
+    private String idCard;
 
-    @Column
-    private String phone;  // không bắt buộc not null
+    @Column(name = "bus_company_name")
+    private String busCompanyName;
 
-    @Column(nullable = false)
-    private String role;  // lưu String: "ROLE_USER" hoặc "ROLE_USER,ROLE_ADMIN"
+    @Column(name = "delete_reason", nullable = false)
+    private String deleteReason;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private UserStatus status;
+    @Column(name = "delete_notes")
+    private String deleteNotes;
 
-    @Column(name = "original_created_at")
-    private LocalDateTime originalCreatedAt;
+    @Column(name = "deleted_by_admin_id", nullable = false)
+    private Integer deletedByAdminId;
 
-    @Column(name = "original_updated_at")
-    private LocalDateTime originalUpdatedAt;
+    @Column(name = "deleted_by_admin_name", nullable = false)
+    private String deletedByAdminName;
 
     @CreationTimestamp
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
-    @Column(name = "deleted_by")
-    private Integer deletedBy;
+    @Column(name = "original_created_at")
+    private LocalDateTime originalCreatedAt;
 
-    @Column(name = "deletion_reason", columnDefinition = "TEXT")
-    private String deletionReason;
+    public static DeletedUser fromUser(User user, Integer adminId, String adminName, String reason, String notes) {
+        DeletedUser deletedUser = new DeletedUser();
+        deletedUser.setOriginalUserId(user.getId());
+        deletedUser.setFirstName(user.getFirstName());
+        deletedUser.setLastName(user.getLastName());
+        deletedUser.setEmail(user.getEmail());
+        deletedUser.setPhone(user.getPhone());
+        deletedUser.setIdCard(user.getIdCard());
+
+        if (user.getBusCompany() != null) {
+            deletedUser.setBusCompanyName(user.getBusCompany().getCompanyName());
+        }
+
+        deletedUser.setDeleteReason(reason);
+        deletedUser.setDeleteNotes(notes);
+        deletedUser.setDeletedByAdminId(adminId);
+        deletedUser.setDeletedByAdminName(adminName);
+        deletedUser.setOriginalCreatedAt(user.getCreatedAt());
+
+        return deletedUser;
+    }
 }

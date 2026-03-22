@@ -27,31 +27,37 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     Page<User> findByStatus(UserStatus status, Pageable pageable);
 
     // ===== ADMIN SEARCH =====
-// ===== ADMIN SEARCH ===== (bỏ filter status <> DELETED)
+    // ===== ADMIN SEARCH ===== (bỏ filter status <> DELETED)
     @Query("""
-        SELECT u FROM User u
-        WHERE (
-            LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
-            OR LOWER(u.firstName) LIKE LOWER(CONCAT('%', :keyword, '%'))
-            OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))
-        )
-    """)
+                SELECT u FROM User u
+                WHERE (
+                    LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                    OR LOWER(u.firstName) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                    OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                )
+            """)
     Page<User> searchByKeyword(
             @Param("keyword") String keyword,
-            Pageable pageable
-    );
+            Pageable pageable);
+
     @Query("""
-        SELECT u FROM User u
-        WHERE u.status = :status
-        AND (
-            LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
-            OR LOWER(u.firstName) LIKE LOWER(CONCAT('%', :keyword, '%'))
-            OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))
-        )
-    """)
+                SELECT u FROM User u
+                WHERE u.status = :status
+                AND (
+                    LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                    OR LOWER(u.firstName) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                    OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                )
+            """)
     Page<User> searchByKeywordAndStatus(
             @Param("keyword") String keyword,
             @Param("status") UserStatus status,
-            Pageable pageable
-    );
+            Pageable pageable);
+
+    // ===== USER PROFILE METHODS =====
+    boolean existsByEmailAndIdNot(String email, Integer id);
+
+    boolean existsByIdCardAndIdNot(String idCard, Integer id);
+
+    boolean existsByIdCard(String idCard);
 }

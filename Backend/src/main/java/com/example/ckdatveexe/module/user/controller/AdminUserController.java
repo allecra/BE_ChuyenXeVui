@@ -6,7 +6,6 @@ import com.example.ckdatveexe.module.user.service.UserService;
 import com.example.ckdatveexe.shared.dto.ApiResponse;
 import com.example.ckdatveexe.shared.entity.UserStatus;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
@@ -70,7 +69,7 @@ public class AdminUserController {
     // GET detail
     @GetMapping("/{id}")
     @Operation(summary = "Lấy chi tiết user")
-    public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable Integer id) {
+    public ResponseEntity<ApiResponse<UserResponse>> getUserDetail(@PathVariable Integer id) {
         UserResponse user = userService.getUserById(id);
         return ResponseEntity.ok(ApiResponse.success("Lấy user thành công", user));
     }
@@ -88,7 +87,7 @@ public class AdminUserController {
     // PUT block
     @PutMapping("/{id}/block")
     @Operation(summary = "Khóa user")
-    public ResponseEntity<ApiResponse> blockUser(@PathVariable Integer id) {
+    public ResponseEntity<ApiResponse<Void>> blockUser(@PathVariable Integer id) {
         userService.blockUser(id);
         return ResponseEntity.ok(ApiResponse.success("Khóa user thành công"));
     }
@@ -96,7 +95,7 @@ public class AdminUserController {
     // PUT unblock
     @PutMapping("/{id}/unblock")
     @Operation(summary = "Mở khóa user")
-    public ResponseEntity<ApiResponse> unblockUser(@PathVariable Integer id) {
+    public ResponseEntity<ApiResponse<Void>> unblockUser(@PathVariable Integer id) {
         userService.unblockUser(id);
         return ResponseEntity.ok(ApiResponse.success("Mở khóa user thành công"));
     }

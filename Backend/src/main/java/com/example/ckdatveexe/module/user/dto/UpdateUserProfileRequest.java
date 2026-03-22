@@ -1,6 +1,5 @@
 package com.example.ckdatveexe.module.user.dto;
 
-import com.example.ckdatveexe.shared.entity.UserStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,7 +12,7 @@ import jakarta.validation.constraints.Size;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UpdateUserRequest {
+public class UpdateUserProfileRequest {
 
     @NotBlank(message = "Tên không được để trống")
     @Size(max = 100, message = "Tên không được vượt quá 100 ký tự")
@@ -32,8 +31,4 @@ public class UpdateUserRequest {
 
     @Pattern(regexp = "^[0-9]{9,12}$", message = "CMND/CCCD phải có 9-12 chữ số")
     private String idCard;
-
-    private UserStatus status;
-
-    private Integer busCompanyId;
 }
