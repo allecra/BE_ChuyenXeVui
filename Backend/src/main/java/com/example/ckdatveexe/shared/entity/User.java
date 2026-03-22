@@ -36,6 +36,9 @@ public class User {
     @Column(length = 20)
     private String phone;
 
+    @Column(name = "id_card", length = 20)
+    private String idCard;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserStatus status = UserStatus.ACTIVE;

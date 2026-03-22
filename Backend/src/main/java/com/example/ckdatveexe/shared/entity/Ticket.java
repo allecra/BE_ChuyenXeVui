@@ -35,7 +35,7 @@ public class Ticket {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private TicketStatus status = TicketStatus.BOOKED;
+    private TicketStatus status = TicketStatus.PENDING;
 
     @CreationTimestamp
     @Column(name = "created_at")
@@ -65,6 +65,24 @@ public class Ticket {
 
     @Column(name = "discount_amount")
     private Double discountAmount;
+
+    @Column(name = "passenger_name", length = 100)
+    private String passengerName;
+
+    @Column(name = "passenger_phone", length = 20)
+    private String passengerPhone;
+
+    @Column(name = "passenger_email", length = 100)
+    private String passengerEmail;
+
+    @Column(name = "passenger_id_card", length = 20)
+    private String passengerIdCard;
+
+    @Column(name = "payment_deadline")
+    private LocalDateTime paymentDeadline;
+
+    @Column(name = "notes", length = 500)
+    private String notes;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "discount_code_id")

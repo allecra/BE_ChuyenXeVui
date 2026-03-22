@@ -1,247 +1,299 @@
 package com.example.ckdatveexe.module.user.service;
 
 import com.example.ckdatveexe.module.user.dto.*;
-import com.example.ckdatveexe.shared.entity.*;
-import com.example.ckdatveexe.shared.repository.*;
+import com.example.ckdatveexe.shared.entity.DeletedUser;
+import com.example.ckdatveexe.shared.entity.User;
+import com.example.ckdatveexe.shared.entity.UserStatus;
+import com.example.ckdatveexe.shared.repository.DeletedUserRepository;
+import com.example.ckdatveexe.shared.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.*;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserService {
-
-    private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
     private final UserRepository userRepository;
     private final DeletedUserRepository deletedUserRepository;
-    private final RoleRepository roleRepository;
-    private final PasswordEncoder passwordEncoder;
 
-    // ===================== MAPPER =====================
+    public UserProfileResponse getUserProfile(Integer userId) {
+        log.info("👤 Getting user profile for user: {}", userId);
 
-    private UserResponse toResponse(User user) {
-        return new UserResponse(
-                user.getId(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getEmail(),
-                user.getPhone(),
-                user.getStatus()
-        );
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
+
+        log.info("✅ User profile retrieved successfully for user: {}", userId);
+        return UserProfileResponse.fromEntity(user);
     }
 
-    private DeletedUserResponse toDeletedUserResponse(DeletedUser du) {
-        DeletedUserResponse res = new DeletedUserResponse();
-        res.setId(du.getId());
-        res.setOriginalUserId(du.getOriginalUserId());
-        res.setEmail(du.getEmail());
-        res.setFirstName(du.getFirstName());
-        res.setLastName(du.getLastName());
-        res.setPhone(du.getPhone());
-        res.setRole(du.getRole());
-        res.setStatus(du.getStatus());
-        res.setOriginalCreatedAt(du.getOriginalCreatedAt());
-        res.setOriginalUpdatedAt(du.getOriginalUpdatedAt());
-        res.setDeletedAt(du.getDeletedAt());
-        res.setDeletedBy(du.getDeletedBy());
-        res.setDeletionReason(du.getDeletionReason());
-        return res;
-    }
+    @Transactional
+    public UserProfileResponse updateUserProfile(Integer userId, UpdateUserProfileRequest request) {
+        log.info("📝 Updating user profile for user: {}", userId);
 
-    // ===================== READ =====================
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
 
-    public Page<UserResponse> getAllUsers(String keyword, UserStatus status, Pageable pageable) {
-        Page<User> page;
-
-        if (keyword != null && status != null) {
-            page = userRepository.searchByKeywordAndStatus(keyword, status, pageable);
-        } else if (keyword != null) {
-            page = userRepository.searchByKeyword(keyword, pageable);
-        } else if (status != null) {
-            page = userRepository.findByStatus(status, pageable);
-        } else {
-            page = userRepository.findAll(pageable);
+        // Check if email is already taken by another user
+        if (!user.getEmail().equals(request.getEmail())) {
+            boolean emailExists = userRepository.existsByEmailAndIdNot(request.getEmail(), userId);
+            if (emailExists) {
+                throw new IllegalArgumentException("Email đã được sử dụng bởi tài khoản khác");
+            }
         }
 
-        return page.map(this::toResponse);
+        // Check if idCard is already taken by another user (if provided)
+        if (request.getIdCard() != null && !request.getIdCard().isEmpty()) {
+            if (user.getIdCard() == null || !user.getIdCard().equals(request.getIdCard())) {
+                boolean idCardExists = userRepository.existsByIdCardAndIdNot(request.getIdCard(), userId);
+                if (idCardExists) {
+                    throw new IllegalArgumentException("CMND/CCCD đã được sử dụng bởi tài khoản khác");
+                }
+            }
+        }
+
+        // Update user information
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setEmail(request.getEmail());
+        user.setPhone(request.getPhone());
+        user.setIdCard(request.getIdCard());
+
+        userRepository.save(user);
+
+        log.info("✅ User profile updated successfully for user: {}", userId);
+        return UserProfileResponse.fromEntity(user);
     }
 
-    public UserResponse getUserById(Integer id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
-        return toResponse(user);
+    public User getUserEntityById(Integer userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
     }
+
+    // ===== ADMIN METHODS =====
 
     public Page<UserResponse> getUsers(UserStatus status, Pageable pageable) {
-        Page<User> page = (status == null)
-                ? userRepository.findAll(pageable)
-                : userRepository.findByStatus(status, pageable);
+        log.info("👥 Getting users list - Status: {}, Page: {}", status, pageable.getPageNumber());
 
-        return page.map(this::toResponse);
+        Page<User> users;
+        if (status != null) {
+            users = userRepository.findByStatus(status, pageable);
+        } else {
+            users = userRepository.findAll(pageable);
+        }
+
+        log.info("✅ Retrieved {} users", users.getTotalElements());
+        return users.map(UserResponse::fromEntity);
     }
 
     public Page<UserResponse> searchUsers(String keyword, UserStatus status, Pageable pageable) {
-        Page<User> page = (status == null)
-                ? userRepository.searchByKeyword(keyword, pageable)
-                : userRepository.searchByKeywordAndStatus(keyword, status, pageable);
+        log.info("🔍 Searching users - Keyword: {}, Status: {}", keyword, status);
 
-        return page.map(this::toResponse);
+        Page<User> users;
+        if (status != null) {
+            users = userRepository.searchByKeywordAndStatus(keyword, status, pageable);
+        } else {
+            users = userRepository.searchByKeyword(keyword, pageable);
+        }
+
+        log.info("✅ Found {} users matching search criteria", users.getTotalElements());
+        return users.map(UserResponse::fromEntity);
     }
 
-    // ===================== DELETED LIST =====================
+    public UserResponse getUserById(Integer id) {
+        log.info("👤 Getting user by ID: {}", id);
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
+
+        log.info("✅ User retrieved successfully: {}", user.getEmail());
+        return UserResponse.fromEntity(user);
+    }
+
+    @Transactional
+    public UserResponse updateUser(Integer id, UpdateUserRequest request) {
+        log.info("📝 Admin updating user: {}", id);
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
+
+        // Check email uniqueness
+        if (!user.getEmail().equals(request.getEmail())) {
+            boolean emailExists = userRepository.existsByEmailAndIdNot(request.getEmail(), id);
+            if (emailExists) {
+                throw new IllegalArgumentException("Email đã được sử dụng bởi tài khoản khác");
+            }
+        }
+
+        // Check idCard uniqueness
+        if (request.getIdCard() != null && !request.getIdCard().isEmpty()) {
+            if (user.getIdCard() == null || !user.getIdCard().equals(request.getIdCard())) {
+                boolean idCardExists = userRepository.existsByIdCardAndIdNot(request.getIdCard(), id);
+                if (idCardExists) {
+                    throw new IllegalArgumentException("CMND/CCCD đã được sử dụng bởi tài khoản khác");
+                }
+            }
+        }
+
+        // Update user information
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setEmail(request.getEmail());
+        user.setPhone(request.getPhone());
+        user.setIdCard(request.getIdCard());
+
+        if (request.getStatus() != null) {
+            user.setStatus(request.getStatus());
+        }
+
+        // TODO: Handle busCompanyId if needed
+
+        userRepository.save(user);
+
+        log.info("✅ User updated successfully by admin: {}", id);
+        return UserResponse.fromEntity(user);
+    }
+
+    @Transactional
+    public void blockUser(Integer id) {
+        log.info("🔒 Blocking user: {}", id);
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
+
+        if (user.getStatus() == UserStatus.BLOCKED) {
+            throw new IllegalArgumentException("Người dùng đã bị khóa trước đó");
+        }
+
+        user.setStatus(UserStatus.BLOCKED);
+        userRepository.save(user);
+
+        log.info("✅ User blocked successfully: {}", id);
+    }
+
+    @Transactional
+    public void unblockUser(Integer id) {
+        log.info("🔓 Unblocking user: {}", id);
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
+
+        if (user.getStatus() != UserStatus.BLOCKED) {
+            throw new IllegalArgumentException("Người dùng không ở trạng thái bị khóa");
+        }
+
+        user.setStatus(UserStatus.ACTIVE);
+        userRepository.save(user);
+
+        log.info("✅ User unblocked successfully: {}", id);
+    }
+
+    @Transactional
+    public void deleteUser(Integer adminId, Integer userId, DeleteUserRequest request) {
+        log.info("🗑️ Deleting user: {} by admin: {} (Hard: {})", userId, adminId, request.isHardDelete());
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
+
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new IllegalArgumentException("Admin không tồn tại"));
+
+        if (request.isHardDelete()) {
+            // Hard delete - remove completely
+            userRepository.delete(user);
+            log.info("✅ User hard deleted successfully: {}", userId);
+        } else {
+            // Soft delete - move to deleted_users table
+            DeletedUser deletedUser = DeletedUser.fromUser(
+                    user,
+                    adminId,
+                    admin.getFirstName() + " " + admin.getLastName(),
+                    request.getReason(),
+                    request.getNotes());
+
+            deletedUserRepository.save(deletedUser);
+            userRepository.delete(user);
+
+            log.info("✅ User soft deleted successfully: {}", userId);
+        }
+    }
 
     public Page<DeletedUserResponse> getDeletedUsers(int page, int size, String sortBy, String sortDir) {
+        log.info("🗑️ Getting deleted users list - Page: {}, Size: {}", page, size);
+
         Sort sort = sortDir.equalsIgnoreCase("desc")
                 ? Sort.by(sortBy).descending()
                 : Sort.by(sortBy).ascending();
 
         Pageable pageable = PageRequest.of(page, size, sort);
+        Page<DeletedUser> deletedUsers = deletedUserRepository.findAllByOrderByDeletedAtDesc(pageable);
 
-        Page<DeletedUser> deletedPage = deletedUserRepository.findAll(pageable);
-
-        return deletedPage.map(this::toDeletedUserResponse);
-    }
-
-    // ===================== UPDATE INFO =====================
-
-    public UserResponse updateUser(Integer id, UpdateUserRequest request) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
-
-        if (request.getFirstName() != null)
-            user.setFirstName(request.getFirstName());
-
-        if (request.getLastName() != null)
-            user.setLastName(request.getLastName());
-
-        if (request.getPhone() != null)
-            user.setPhone(request.getPhone());
-
-        return toResponse(userRepository.save(user));
-    }
-
-    // ===================== STATUS =====================
-
-    public void updateUserStatus(Integer id, UserStatus status) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
-
-        user.setStatus(status);
-        userRepository.save(user);
-    }
-
-    @Transactional
-    public void deleteUser(Integer deletedBy, Integer userId, DeleteUserRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
-
-        if (user.getId().equals(deletedBy)) {
-            throw new IllegalArgumentException("Không thể tự xóa chính mình");
-        }
-
-        if (request.isHardDelete()) {
-            userRepository.delete(user);
-            log.info("Hard delete user id={} by admin {}", userId, deletedBy);
-            return;
-        }
-
-        DeletedUser du = new DeletedUser();
-        du.setOriginalUserId(user.getId());
-        du.setEmail(user.getEmail());
-        du.setFirstName(user.getFirstName());
-        du.setLastName(user.getLastName());
-        du.setPhone(user.getPhone());
-
-        String rolesStr = user.getRoles().stream()
-                .map(r -> r.getRoleName().name())
-                .collect(Collectors.joining(", "));
-        du.setRole(rolesStr.isEmpty() ? "ROLE_USER" : rolesStr);
-
-        du.setStatus(user.getStatus());
-        du.setOriginalCreatedAt(user.getCreatedAt());
-        du.setOriginalUpdatedAt(user.getUpdatedAt());
-        du.setDeletedBy(deletedBy);
-        du.setDeletionReason(request.getDeletionReason() != null ? request.getDeletionReason() : "Xóa bởi admin");
-
-        DeletedUser savedDu = deletedUserRepository.save(du);
-        log.info("Soft delete user id={}, saved to deleted_users id={}", userId, savedDu.getId());
-
-        userRepository.delete(user);
+        log.info("✅ Retrieved {} deleted users", deletedUsers.getTotalElements());
+        return deletedUsers.map(this::mapToDeletedUserResponse);
     }
 
     @Transactional
     public UserResponse restoreUser(Integer deletedUserId) {
-        log.info("Bắt đầu khôi phục deletedUserId={}", deletedUserId);
+        log.info("♻️ Restoring deleted user: {}", deletedUserId);
 
-        DeletedUser du = deletedUserRepository.findById(deletedUserId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy bản ghi đã xóa với id=" + deletedUserId));
+        DeletedUser deletedUser = deletedUserRepository.findById(deletedUserId)
+                .orElseThrow(() -> new IllegalArgumentException("Bản ghi người dùng đã xóa không tồn tại"));
 
-        log.info("Tìm thấy deleted user: originalUserId={}, email={}", du.getOriginalUserId(), du.getEmail());
-
-        if (userRepository.existsByEmail(du.getEmail())) {
-            throw new IllegalStateException("Email đã tồn tại, không thể khôi phục");
+        // Check if user with same email already exists
+        boolean emailExists = userRepository.existsByEmail(deletedUser.getEmail());
+        if (emailExists) {
+            throw new IllegalArgumentException("Email đã được sử dụng bởi tài khoản khác, không thể khôi phục");
         }
 
-        User restored = new User();
-        restored.setFirstName(du.getFirstName());
-        restored.setLastName(du.getLastName());
-        restored.setEmail(du.getEmail());
-        restored.setPhone(du.getPhone());
-        restored.setStatus(UserStatus.ACTIVE);
-
-        String[] roleNames = du.getRole().split(",\\s*");
-        Set<Role> roles = new HashSet<>();
-        for (String roleStr : roleNames) {
-            if (!roleStr.isBlank()) {
-                try {
-                    RoleName roleName = RoleName.valueOf(roleStr.trim());
-                    Role role = roleRepository.findByRoleName(roleName)
-                            .orElse(null);
-                    if (role != null) {
-                        roles.add(role);
-                    }
-                } catch (IllegalArgumentException e) {
-                    log.warn("Invalid role name in deleted user: {}", roleStr);
-                }
+        // Check if user with same idCard already exists (if idCard is not null)
+        if (deletedUser.getIdCard() != null && !deletedUser.getIdCard().isEmpty()) {
+            boolean idCardExists = userRepository.existsByIdCard(deletedUser.getIdCard());
+            if (idCardExists) {
+                throw new IllegalArgumentException("CMND/CCCD đã được sử dụng bởi tài khoản khác, không thể khôi phục");
             }
         }
-        if (roles.isEmpty()) {
-            Role defaultRole = roleRepository.findByRoleName(RoleName.ROLE_USER)
-                    .orElseThrow(() -> new RuntimeException("Role ROLE_USER không tồn tại"));
-            roles.add(defaultRole);
-        }
-        restored.setRoles(roles);
 
-        String randomPassword = UUID.randomUUID().toString().replaceAll("-", "").substring(0, 12);
-        String encodedPassword = passwordEncoder.encode(randomPassword);
-        restored.setPassword(encodedPassword);
+        // Restore user
+        User restoredUser = new User();
+        restoredUser.setFirstName(deletedUser.getFirstName());
+        restoredUser.setLastName(deletedUser.getLastName());
+        restoredUser.setEmail(deletedUser.getEmail());
+        restoredUser.setPhone(deletedUser.getPhone());
+        restoredUser.setIdCard(deletedUser.getIdCard());
+        restoredUser.setStatus(UserStatus.ACTIVE);
+        // TODO: Set default password or require password reset
+        restoredUser.setPassword("$2a$10$defaultPasswordHash"); // Placeholder
 
-        log.info("User {} restored with temporary password: {}", du.getEmail(), randomPassword);
-        // TODO: Gửi email reset password ở đây
+        userRepository.save(restoredUser);
+        deletedUserRepository.delete(deletedUser);
 
-        User saved = userRepository.save(restored);
-        deletedUserRepository.delete(du);
-
-        log.info("Khôi phục hoàn tất: new user id={}, original id={}", saved.getId(), du.getOriginalUserId());
-
-        return toResponse(saved);
+        log.info("✅ User restored successfully: {}", restoredUser.getId());
+        return UserResponse.fromEntity(restoredUser);
     }
 
-    public void blockUser(Integer id) {
-        updateUserStatus(id, UserStatus.BLOCKED);
-    }
-
-    public void unblockUser(Integer id) {
-        updateUserStatus(id, UserStatus.ACTIVE);
+    private DeletedUserResponse mapToDeletedUserResponse(DeletedUser deletedUser) {
+        DeletedUserResponse response = new DeletedUserResponse();
+        response.setId(deletedUser.getId());
+        response.setOriginalUserId(deletedUser.getOriginalUserId());
+        response.setFirstName(deletedUser.getFirstName());
+        response.setLastName(deletedUser.getLastName());
+        response.setFullName(deletedUser.getFirstName() + " " + deletedUser.getLastName());
+        response.setEmail(deletedUser.getEmail());
+        response.setPhone(deletedUser.getPhone());
+        response.setIdCard(deletedUser.getIdCard());
+        response.setBusCompanyName(deletedUser.getBusCompanyName());
+        response.setDeleteReason(deletedUser.getDeleteReason());
+        response.setDeleteNotes(deletedUser.getDeleteNotes());
+        response.setDeletedByAdminName(deletedUser.getDeletedByAdminName());
+        response.setDeletedByAdminId(deletedUser.getDeletedByAdminId());
+        response.setDeletedAt(deletedUser.getDeletedAt());
+        response.setOriginalCreatedAt(deletedUser.getOriginalCreatedAt());
+        return response;
     }
 }

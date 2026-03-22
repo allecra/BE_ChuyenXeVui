@@ -19,6 +19,12 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @Column(name = "transaction_id", unique = true, nullable = false)
+    private String transactionId;
+
+    @Column(name = "provider_transaction_id")
+    private String providerTransactionId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", nullable = false)
     private PaymentMethod paymentMethod;
@@ -26,9 +32,30 @@ public class Payment {
     @Column(nullable = false)
     private Double amount;
 
+    @Column(name = "currency", nullable = false)
+    private String currency = "VND";
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PaymentStatus status = PaymentStatus.PENDING;
+
+    @Column(name = "description")
+    private String description;
+
+    @Column(name = "qr_code_url")
+    private String qrCodeUrl;
+
+    @Column(name = "payment_url")
+    private String paymentUrl;
+
+    @Column(name = "expired_at")
+    private LocalDateTime expiredAt;
+
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
+
+    @Column(name = "callback_data", columnDefinition = "TEXT")
+    private String callbackData;
 
     @CreationTimestamp
     @Column(name = "created_at")
