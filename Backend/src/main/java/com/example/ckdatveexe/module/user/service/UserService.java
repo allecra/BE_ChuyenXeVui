@@ -33,6 +33,57 @@ public class UserService {
         return UserProfileResponse.fromEntity(user);
     }
 
+    public UserProfileResponse getUserProfileByEmail(String email) {
+        log.info("👤 Getting user profile for email: {}", email);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
+
+        log.info("✅ User profile retrieved successfully for email: {}", email);
+        return UserProfileResponse.fromEntity(user);
+    }
+
+    public UserProfileResponse updateUserProfileByEmail(String email, UpdateUserProfileRequest request) {
+        log.info("📝 Updating user profile for email: {}", email);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
+
+        // Validate email uniqueness if changed
+        if (!user.getEmail().equals(request.getEmail()) &&
+                userRepository.existsByEmailAndIdNot(request.getEmail(), user.getId())) {
+            throw new IllegalArgumentException("Email đã được sử dụng bởi người dùng khác");
+        }
+
+        // Validate ID card uniqueness if provided and changed
+        if (request.getIdCard() != null && !request.getIdCard().equals(user.getIdCard()) &&
+                userRepository.existsByIdCardAndIdNot(request.getIdCard(), user.getId())) {
+            throw new IllegalArgumentException("Số CMND/CCCD đã được sử dụng bởi người dùng khác");
+        }
+
+        // Update user fields
+        if (request.getFirstName() != null) {
+            user.setFirstName(request.getFirstName());
+        }
+        if (request.getLastName() != null) {
+            user.setLastName(request.getLastName());
+        }
+        if (request.getEmail() != null) {
+            user.setEmail(request.getEmail());
+        }
+        if (request.getPhone() != null) {
+            user.setPhone(request.getPhone());
+        }
+        if (request.getIdCard() != null) {
+            user.setIdCard(request.getIdCard());
+        }
+
+        User updatedUser = userRepository.save(user);
+        log.info("✅ User profile updated successfully for email: {}", email);
+
+        return UserProfileResponse.fromEntity(updatedUser);
+    }
+
     @Transactional
     public UserProfileResponse updateUserProfile(Integer userId, UpdateUserProfileRequest request) {
         log.info("📝 Updating user profile for user: {}", userId);

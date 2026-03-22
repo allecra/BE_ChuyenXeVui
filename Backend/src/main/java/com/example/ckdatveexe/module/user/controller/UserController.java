@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/user/profile")
+@RequestMapping("/user/profile")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "User Profile", description = "APIs quản lý thông tin cá nhân người dùng")
@@ -29,12 +29,12 @@ public class UserController {
     @Operation(summary = "Lấy thông tin cá nhân", description = "Lấy thông tin cá nhân của người dùng đang đăng nhập")
     public ResponseEntity<ApiResponse<UserProfileResponse>> getUserProfile(Authentication authentication) {
         try {
-            Integer userId = Integer.valueOf(authentication.getName());
-            log.info("👤 [GET] /api/user/profile - User: {}", userId);
+            String email = authentication.getName();
+            log.info("👤 [GET] /api/user/profile - Email: {}", email);
 
-            UserProfileResponse profile = userService.getUserProfile(userId);
+            UserProfileResponse profile = userService.getUserProfileByEmail(email);
 
-            log.info("✅ [GET] /api/user/profile - Success for user: {}", userId);
+            log.info("✅ [GET] /api/user/profile - Success for email: {}", email);
             return ResponseEntity.ok(ApiResponse.success(
                     "Lấy thông tin cá nhân thành công",
                     profile));
@@ -51,12 +51,12 @@ public class UserController {
             @Valid @RequestBody UpdateUserProfileRequest request,
             Authentication authentication) {
         try {
-            Integer userId = Integer.valueOf(authentication.getName());
-            log.info("📝 [PUT] /api/user/profile - User: {} updating profile", userId);
+            String email = authentication.getName();
+            log.info("📝 [PUT] /api/user/profile - Email: {} updating profile", email);
 
-            UserProfileResponse updatedProfile = userService.updateUserProfile(userId, request);
+            UserProfileResponse updatedProfile = userService.updateUserProfileByEmail(email, request);
 
-            log.info("✅ [PUT] /api/user/profile - Success for user: {}", userId);
+            log.info("✅ [PUT] /api/user/profile - Success for email: {}", email);
             return ResponseEntity.ok(ApiResponse.success(
                     "Cập nhật thông tin cá nhân thành công",
                     updatedProfile));
@@ -71,12 +71,12 @@ public class UserController {
     @Operation(summary = "Lấy thông tin để điền form đặt vé", description = "Lấy thông tin cá nhân để tự động điền vào form đặt vé")
     public ResponseEntity<ApiResponse<UserProfileResponse>> getProfileForBooking(Authentication authentication) {
         try {
-            Integer userId = Integer.valueOf(authentication.getName());
-            log.info("🎫 [GET] /api/user/profile/for-booking - User: {}", userId);
+            String email = authentication.getName();
+            log.info("🎫 [GET] /api/user/profile/for-booking - Email: {}", email);
 
-            UserProfileResponse profile = userService.getUserProfile(userId);
+            UserProfileResponse profile = userService.getUserProfileByEmail(email);
 
-            log.info("✅ [GET] /api/user/profile/for-booking - Success for user: {}", userId);
+            log.info("✅ [GET] /api/user/profile/for-booking - Success for email: {}", email);
             return ResponseEntity.ok(ApiResponse.success(
                     "Lấy thông tin để đặt vé thành công",
                     profile));

@@ -76,6 +76,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/bus-company/**").hasAuthority("ROLE_BUS_COMPANY")
                         .requestMatchers("/api/user/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN", "ROLE_BUS_COMPANY")
+                        .requestMatchers("/user/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN", "ROLE_BUS_COMPANY")
                         .requestMatchers("/media/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN", "ROLE_BUS_COMPANY")
                         .anyRequest().authenticated());
 
