@@ -1,5 +1,6 @@
 package com.example.ckdatveexe.module.ticket.service;
 
+import com.example.ckdatveexe.exception.ResourceNotFoundException;
 import com.example.ckdatveexe.module.ticket.dto.*;
 import com.example.ckdatveexe.shared.entity.*;
 import com.example.ckdatveexe.shared.repository.*;
@@ -9,8 +10,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,6 +30,8 @@ public class TicketService {
     private final UserRepository userRepository;
     private final BusRepository busRepository;
     private final TicketEmailService ticketEmailService;
+    private final CancellationPolicyRepository cancellationPolicyRepository;
+    private final PaymentRepository paymentRepository;
 
     private static final int PAYMENT_TIMEOUT_MINUTES = 5; // 5 phút để thanh toán
 
@@ -676,5 +682,248 @@ public class TicketService {
 
         log.info("🔄 Passenger info auto-filled from user profile - Name: {}, Email: {}",
                 ticket.getPassengerName(), ticket.getPassengerEmail());
+    }
+
+    @Transactional
+    public TicketCancellationResponse cancelTicket(TicketCancellationRequest request, Integer userId) {
+        Ticket ticket = ticketRepository.findById(request.getTicketId())
+                .orElseThrow(() -> new ResourceNotFoundException("Vé không tồn tại"));
+
+        // Verify ownership
+        if (!ticket.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("Bạn không có quyền hủy vé này");
+        }
+
+        // Check if ticket can be cancelled
+        if (ticket.getStatus() == TicketStatus.CANCELLED) {
+            throw new IllegalArgumentException("Vé đã được hủy trước đó");
+        }
+
+        if (ticket.getStatus() != TicketStatus.CONFIRMED) {
+            throw new IllegalArgumentException("Chỉ có thể hủy vé đã được xác nhận");
+        }
+
+        // Check cancellation time limit
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime departureTime = ticket.getSchedule().getDepartureTime();
+
+        // Get cancellation policy for the route
+        CancellationPolicy policy = cancellationPolicyRepository.findByRouteId(ticket.getSchedule().getRoute().getId())
+                .orElse(getDefaultCancellationPolicy());
+
+        long hoursUntilDeparture = ChronoUnit.HOURS.between(now, departureTime);
+
+        if (hoursUntilDeparture < policy.getCancellationTimeLimit()) {
+            throw new IllegalArgumentException(
+                    String.format("Không thể hủy vé. Cần hủy trước %d giờ so với giờ khởi hành",
+                            policy.getCancellationTimeLimit()));
+        }
+
+        // Calculate refund amount
+        BigDecimal originalAmount = BigDecimal.valueOf(ticket.getPrice());
+        BigDecimal refundPercentage = BigDecimal.valueOf(policy.getRefundPercentage());
+        BigDecimal refundAmount = originalAmount.multiply(refundPercentage).divide(BigDecimal.valueOf(100));
+        BigDecimal cancellationFee = originalAmount.subtract(refundAmount);
+
+        // Update ticket status
+        ticket.setStatus(TicketStatus.CANCELLED);
+        ticket.setCancellationReason(request.getCancellationReason());
+        ticket.setCancellationTime(now);
+        ticketRepository.save(ticket);
+
+        // Release seats
+        List<Seat> seats = seatRepository.findByTicketId(ticket.getId());
+        for (Seat seat : seats) {
+            seat.setStatus(SeatStatus.AVAILABLE);
+            seat.setTicket(null);
+            seatRepository.save(seat);
+        }
+
+        // Create refund record (if refund amount > 0)
+        if (refundAmount.compareTo(BigDecimal.ZERO) > 0) {
+            createRefundRecord(ticket, refundAmount, request);
+        }
+
+        log.info("Cancelled ticket: {} for user: {}, refund amount: {}",
+                ticket.getTicketCode(), userId, refundAmount);
+
+        // Prepare response
+        TicketCancellationResponse response = new TicketCancellationResponse();
+        response.setTicketId(ticket.getId());
+        response.setTicketCode(ticket.getTicketCode());
+        response.setOriginalAmount(originalAmount);
+        response.setRefundAmount(refundAmount);
+        response.setCancellationFee(cancellationFee);
+        response.setRefundPercentage(policy.getRefundPercentage());
+        response.setCancellationReason(request.getCancellationReason());
+        response.setCancellationTime(now);
+        response.setEstimatedRefundTime(now.plusDays(7)); // 7 days processing time
+        response.setRefundMethod("Chuyển khoản ngân hàng");
+        response.setRefundStatus("Đang xử lý");
+        response.setMessage("Hủy vé thành công. Tiền hoàn sẽ được chuyển trong vòng 7 ngày làm việc.");
+
+        return response;
+    }
+
+    @Transactional
+    public TicketModificationResponse modifyTicket(TicketModificationRequest request, Integer userId) {
+        Ticket ticket = ticketRepository.findById(request.getTicketId())
+                .orElseThrow(() -> new ResourceNotFoundException("Vé không tồn tại"));
+
+        // Verify ownership
+        if (!ticket.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("Bạn không có quyền đổi vé này");
+        }
+
+        // Check if ticket can be modified
+        if (ticket.getStatus() != TicketStatus.CONFIRMED) {
+            throw new IllegalArgumentException("Chỉ có thể đổi vé đã được xác nhận");
+        }
+
+        // Check modification time limit (24 hours before departure)
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime departureTime = ticket.getSchedule().getDepartureTime();
+        long hoursUntilDeparture = ChronoUnit.HOURS.between(now, departureTime);
+
+        if (hoursUntilDeparture < 24) {
+            throw new IllegalArgumentException("Không thể đổi vé. Cần đổi trước 24 giờ so với giờ khởi hành");
+        }
+
+        Schedule oldSchedule = ticket.getSchedule();
+        final Schedule newSchedule;
+
+        if (request.getNewScheduleId() != null) {
+            newSchedule = scheduleRepository.findById(request.getNewScheduleId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Lịch trình mới không tồn tại"));
+        } else {
+            newSchedule = null;
+        }
+
+        // Store old information
+        String oldScheduleInfo = String.format("%s - %s (%s)",
+                oldSchedule.getRoute().getDepartureLocation(),
+                oldSchedule.getRoute().getArrivalLocation(),
+                oldSchedule.getDepartureTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
+
+        List<Seat> oldSeats = seatRepository.findByTicketId(ticket.getId());
+        String oldSeatNumbers = oldSeats.stream()
+                .map(Seat::getSeatNumber)
+                .collect(Collectors.joining(", "));
+
+        BigDecimal originalAmount = BigDecimal.valueOf(ticket.getPrice());
+        BigDecimal newAmount = originalAmount;
+        BigDecimal additionalFee = BigDecimal.ZERO;
+
+        // Handle schedule change
+        if (newSchedule != null) {
+            // Release old seats
+            for (Seat seat : oldSeats) {
+                seat.setStatus(SeatStatus.AVAILABLE);
+                seat.setTicket(null);
+                seatRepository.save(seat);
+            }
+
+            // Book new seats
+            if (request.getNewSeatNumbers() != null && !request.getNewSeatNumbers().isEmpty()) {
+                List<Seat> newSeats = new ArrayList<>();
+                for (String seatNumber : request.getNewSeatNumbers()) {
+                    Seat seat = seatRepository.findByScheduleIdAndSeatNumber(newSchedule.getId(), seatNumber)
+                            .orElseThrow(() -> new ResourceNotFoundException("Ghế " + seatNumber + " không tồn tại"));
+
+                    if (seat.getStatus() != SeatStatus.AVAILABLE) {
+                        throw new IllegalArgumentException("Ghế " + seatNumber + " không khả dụng");
+                    }
+
+                    seat.setStatus(SeatStatus.BOOKED);
+                    seat.setTicket(ticket);
+                    newSeats.add(seatRepository.save(seat));
+                }
+
+                // Calculate new price
+                newAmount = BigDecimal.valueOf(newSeats.stream()
+                        .mapToDouble(seat -> calculatePrice(seat, newSchedule))
+                        .sum());
+            }
+
+            ticket.setSchedule(newSchedule);
+        }
+
+        // Calculate modification fee (5% of original amount)
+        BigDecimal modificationFee = originalAmount.multiply(BigDecimal.valueOf(0.05));
+        additionalFee = additionalFee.add(modificationFee);
+
+        // If new amount is higher, add the difference
+        if (newAmount.compareTo(originalAmount) > 0) {
+            additionalFee = additionalFee.add(newAmount.subtract(originalAmount));
+        }
+
+        // Update ticket
+        ticket.setPrice(newAmount.doubleValue());
+        ticket.setModificationReason(request.getModificationReason());
+        ticket.setModificationTime(now);
+        ticketRepository.save(ticket);
+
+        // Prepare response
+        TicketModificationResponse response = new TicketModificationResponse();
+        response.setTicketId(ticket.getId());
+        response.setTicketCode(ticket.getTicketCode());
+        response.setOriginalAmount(originalAmount);
+        response.setNewAmount(newAmount);
+        response.setAdditionalFee(additionalFee);
+        response.setModificationReason(request.getModificationReason());
+        response.setModificationTime(now);
+        response.setOldScheduleInfo(oldScheduleInfo);
+
+        if (newSchedule != null) {
+            response.setNewScheduleInfo(String.format("%s - %s (%s)",
+                    newSchedule.getRoute().getDepartureLocation(),
+                    newSchedule.getRoute().getArrivalLocation(),
+                    newSchedule.getDepartureTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))));
+        }
+
+        response.setOldSeatNumbers(oldSeatNumbers);
+        if (request.getNewSeatNumbers() != null) {
+            response.setNewSeatNumbers(String.join(", ", request.getNewSeatNumbers()));
+        }
+
+        response.setMessage("Đổi vé thành công. Phí đổi vé: " + additionalFee + " VND");
+
+        log.info("Modified ticket: {} for user: {}, additional fee: {}",
+                ticket.getTicketCode(), userId, additionalFee);
+
+        return response;
+    }
+
+    private CancellationPolicy getDefaultCancellationPolicy() {
+        CancellationPolicy defaultPolicy = new CancellationPolicy();
+        defaultPolicy.setCancellationTimeLimit(24); // 24 hours
+        defaultPolicy.setRefundPercentage(80); // 80% refund
+        defaultPolicy.setDescriptions("Chính sách hủy vé mặc định: Hủy trước 24h được hoàn 80%");
+        return defaultPolicy;
+    }
+
+    private void createRefundRecord(Ticket ticket, BigDecimal refundAmount, TicketCancellationRequest request) {
+        // Create a payment record for refund tracking
+        Payment refundPayment = new Payment();
+        refundPayment.setUser(ticket.getUser());
+        refundPayment.setTicket(ticket);
+        refundPayment.setAmount(refundAmount);
+        refundPayment.setPaymentMethod(PaymentMethod.BANK_TRANSFER);
+        refundPayment.setPaymentProvider(PaymentProvider.SYSTEM);
+        refundPayment.setStatus(PaymentStatus.PENDING);
+        refundPayment.setTransactionId("REFUND_" + ticket.getTicketCode() + "_" + System.currentTimeMillis());
+        refundPayment.setDescription("Hoàn tiền hủy vé: " + ticket.getTicketCode());
+
+        // Store bank account info for refund
+        if (request.getBankAccountNumber() != null) {
+            refundPayment.setPaymentDetails(String.format(
+                    "Bank: %s, Account: %s, Name: %s",
+                    request.getBankName(),
+                    request.getBankAccountNumber(),
+                    request.getBankAccountName()));
+        }
+
+        paymentRepository.save(refundPayment);
+        log.info("Created refund record: {} for amount: {}", refundPayment.getTransactionId(), refundAmount);
     }
 }

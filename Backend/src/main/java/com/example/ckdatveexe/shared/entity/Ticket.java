@@ -94,4 +94,15 @@ public class Ticket {
 
     @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Payment> payments;
+    @Column(name = "cancellation_reason", length = 500)
+    private String cancellationReason;
+
+    @Column(name = "cancellation_time")
+    private LocalDateTime cancellationTime;
+
+    @Column(name = "modification_reason", length = 500)
+    private String modificationReason;
+
+    @Column(name = "modification_time")
+    private LocalDateTime modificationTime;
 }

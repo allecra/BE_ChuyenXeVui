@@ -4,6 +4,7 @@ import com.example.ckdatveexe.config.UserDetailsImpl;
 import com.example.ckdatveexe.module.ticket.dto.*;
 import com.example.ckdatveexe.module.ticket.service.SeatLockService;
 import com.example.ckdatveexe.module.ticket.service.TicketService;
+import com.example.ckdatveexe.module.ticket.service.TicketCancellationService;
 import com.example.ckdatveexe.shared.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -31,6 +32,7 @@ public class TicketUserController {
 
         private final TicketService ticketService;
         private final SeatLockService seatLockService;
+        private final TicketCancellationService ticketCancellationService;
 
         @PostMapping("/tickets/book")
         @Operation(summary = "Đặt vé", description = "Đặt vé và giữ ghế trong 5 phút chờ thanh toán")
@@ -330,5 +332,27 @@ public class TicketUserController {
                                                         .message(e.getMessage())
                                                         .build());
                 }
+        }
+
+        @PostMapping("/tickets/cancel-confirmed")
+        @Operation(summary = "Cancel confirmed ticket with refund", description = "Cancel a confirmed ticket and process refund according to cancellation policy", security = @SecurityRequirement(name = "bearerAuth"))
+        public ResponseEntity<ApiResponse<TicketCancellationResponse>> cancelConfirmedTicket(
+                        @Valid @RequestBody TicketCancellationRequest request,
+                        @AuthenticationPrincipal UserDetailsImpl userDetails) {
+
+                TicketCancellationResponse response = ticketCancellationService.cancelTicket(request,
+                                userDetails.getId());
+                return ResponseEntity.ok(ApiResponse.success("Hủy vé thành công", response));
+        }
+
+        @PostMapping("/tickets/modify")
+        @Operation(summary = "Modify ticket", description = "Modify ticket schedule or seats with additional fees", security = @SecurityRequirement(name = "bearerAuth"))
+        public ResponseEntity<ApiResponse<TicketModificationResponse>> modifyTicket(
+                        @Valid @RequestBody TicketModificationRequest request,
+                        @AuthenticationPrincipal UserDetailsImpl userDetails) {
+
+                TicketModificationResponse response = ticketCancellationService.modifyTicket(request,
+                                userDetails.getId());
+                return ResponseEntity.ok(ApiResponse.success("Đổi vé thành công", response));
         }
 }
