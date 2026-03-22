@@ -17,7 +17,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/company/schedules")
+@RequestMapping("/api/company/schedule-management")
 @RequiredArgsConstructor
 @Tag(name = "Schedule Management", description = "APIs for advanced schedule management by bus companies")
 @SecurityRequirement(name = "bearerAuth")

@@ -15,7 +15,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/user/tickets")
+@RequestMapping("/api/user/ticket-management")
 @RequiredArgsConstructor
 @Tag(name = "Ticket Cancellation & Modification", description = "APIs for ticket cancellation and modification")
 @SecurityRequirement(name = "bearerAuth")
