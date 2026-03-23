@@ -5,7 +5,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -14,16 +13,13 @@ import jakarta.validation.constraints.Size;
 @AllArgsConstructor
 public class UpdateUserProfileRequest {
 
-    @NotBlank(message = "Tên không được để trống")
     @Size(max = 100, message = "Tên không được vượt quá 100 ký tự")
     private String firstName;
 
-    @NotBlank(message = "Họ không được để trống")
     @Size(max = 100, message = "Họ không được vượt quá 100 ký tự")
     private String lastName;
 
     @Email(message = "Email không hợp lệ")
-    @NotBlank(message = "Email không được để trống")
     private String email;
 
     @Pattern(regexp = "^[0-9]{10,11}$", message = "Số điện thoại phải có 10-11 chữ số")

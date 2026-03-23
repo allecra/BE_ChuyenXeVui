@@ -304,7 +304,7 @@ Reviews (đánh giá)
 ```json
 {
   "success": true,
-  "message": "Cập nhật profile thành công",
+  "message": "Cập nhật thông tin cá nhân thành công",
   "data": {
     "id": 1,
     "username": "john_doe",
@@ -312,8 +312,176 @@ Reviews (đánh giá)
     "fullName": "John Doe Updated",
     "phone": "0987654321",
     "idCard": "123456789012",
+    "status": "ACTIVE",
+    "updatedAt": "2026-03-22T11:00:00"
+  }
+}
+```
+
+#### GET `/profile/for-booking` - Lấy thông tin để đặt vé
+
+**Headers:** `Authorization: Bearer {accessToken}`
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Lấy thông tin để đặt vé thành công",
+  "data": {
+    "id": 1,
+    "username": "john_doe",
+    "email": "john@example.com",
+    "fullName": "John Doe",
+    "phone": "0123456789",
+    "idCard": "123456789012",
     "status": "ACTIVE"
   }
+}
+```
+
+#### GET `/profile/booking-history` - Lịch sử đặt vé
+
+**Headers:** `Authorization: Bearer {accessToken}`
+**Query Parameters:**
+
+- `page`: Số trang (default: 0)
+- `size`: Kích thước trang (default: 10)
+- `sortBy`: Sắp xếp theo (default: "createdAt")
+- `sortDir`: Hướng sắp xếp (default: "desc")
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Lấy lịch sử đặt vé thành công",
+  "data": {
+    "content": [
+      {
+        "ticketId": 1,
+        "ticketCode": "TK20260322001",
+        "routeName": "Hà Nội - Hồ Chí Minh",
+        "startStation": "Bến xe Miền Đông",
+        "endStation": "Bến xe Miền Tây",
+        "departureTime": "2026-03-23T08:00:00",
+        "arrivalTime": "2026-03-23T20:00:00",
+        "seatNumber": "A1",
+        "seatType": "VIP",
+        "price": 450000,
+        "status": "CONFIRMED",
+        "bookingTime": "2026-03-22T10:30:00",
+        "busName": "Xe Limousine VIP",
+        "licensePlate": "30A-12345",
+        "companyName": "Nhà xe ABC",
+        "paymentStatus": "COMPLETED",
+        "paymentMethod": "MOMO"
+      }
+    ],
+    "totalElements": 15,
+    "totalPages": 2,
+    "size": 10,
+    "number": 0
+  }
+}
+```
+
+#### GET `/profile/payment-history` - Lịch sử thanh toán
+
+**Headers:** `Authorization: Bearer {accessToken}`
+**Query Parameters:**
+
+- `page`: Số trang (default: 0)
+- `size`: Kích thước trang (default: 10)
+- `sortBy`: Sắp xếp theo (default: "createdAt")
+- `sortDir`: Hướng sắp xếp (default: "desc")
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Lấy lịch sử thanh toán thành công",
+  "data": {
+    "content": [
+      {
+        "paymentId": 1,
+        "transactionId": "PAY_20260322_001",
+        "ticketCode": "TK20260322001",
+        "routeName": "Hà Nội - Hồ Chí Minh",
+        "amount": 450000,
+        "currency": "VND",
+        "paymentMethod": "MOMO",
+        "status": "COMPLETED",
+        "createdAt": "2026-03-22T10:30:00",
+        "paidAt": "2026-03-22T10:32:00",
+        "description": "Thanh toán vé xe khách TK20260322001",
+        "providerName": "MoMo"
+      }
+    ],
+    "totalElements": 8,
+    "totalPages": 1,
+    "size": 10,
+    "number": 0
+  }
+}
+```
+
+#### GET `/profile/login-sessions` - Quản lý đăng nhập
+
+**Headers:** `Authorization: Bearer {accessToken}`
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Lấy danh sách phiên đăng nhập thành công",
+  "data": [
+    {
+      "sessionId": "sess_001",
+      "deviceInfo": "Chrome on Windows",
+      "ipAddress": "192.168.1.100",
+      "location": "Hà Nội, Việt Nam",
+      "loginTime": "2026-03-22T08:00:00",
+      "lastActivity": "2026-03-22T10:25:00",
+      "isActive": true,
+      "browserInfo": "Chrome 120.0.0.0",
+      "operatingSystem": "Windows 11"
+    },
+    {
+      "sessionId": "sess_002",
+      "deviceInfo": "Mobile App on Android",
+      "ipAddress": "192.168.1.101",
+      "location": "Hà Nội, Việt Nam",
+      "loginTime": "2026-03-21T15:30:00",
+      "lastActivity": "2026-03-22T09:15:00",
+      "isActive": true,
+      "browserInfo": "Mobile App",
+      "operatingSystem": "Android 14"
+    }
+  ]
+}
+```
+
+#### POST `/profile/change-password` - Đổi mật khẩu
+
+**Headers:** `Authorization: Bearer {accessToken}`
+**Request Body:**
+
+```json
+{
+  "currentPassword": "OldPassword123!",
+  "newPassword": "NewSecurePass123!",
+  "confirmPassword": "NewSecurePass123!"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Đổi mật khẩu thành công. Email thông báo đã được gửi.",
+  "data": null
 }
 ```
 

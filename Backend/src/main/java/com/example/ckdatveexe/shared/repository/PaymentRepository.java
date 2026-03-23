@@ -9,7 +9,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -79,4 +78,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Integer> {
 
     // Find payments by status and amount condition
     List<Payment> findByStatusAndAmountLessThan(PaymentStatus status, Double amount);
+
+    // Find by user with pagination
+    Page<Payment> findByUserIdOrderByCreatedAtDesc(Integer userId, Pageable pageable);
 }
