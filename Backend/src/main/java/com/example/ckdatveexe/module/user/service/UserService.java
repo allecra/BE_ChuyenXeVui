@@ -1,19 +1,23 @@
 package com.example.ckdatveexe.module.user.service;
 
+import com.example.ckdatveexe.module.auth.service.EmailService;
 import com.example.ckdatveexe.module.user.dto.*;
-import com.example.ckdatveexe.shared.entity.DeletedUser;
-import com.example.ckdatveexe.shared.entity.User;
-import com.example.ckdatveexe.shared.entity.UserStatus;
-import com.example.ckdatveexe.shared.repository.DeletedUserRepository;
-import com.example.ckdatveexe.shared.repository.UserRepository;
+import com.example.ckdatveexe.shared.dto.ApiResponse;
+import com.example.ckdatveexe.shared.entity.*;
+import com.example.ckdatveexe.shared.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +26,10 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final DeletedUserRepository deletedUserRepository;
+    private final TicketRepository ticketRepository;
+    private final PaymentRepository paymentRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     public UserProfileResponse getUserProfile(Integer userId) {
         log.info("👤 Getting user profile for user: {}", userId);
@@ -45,43 +53,150 @@ public class UserService {
 
     public UserProfileResponse updateUserProfileByEmail(String email, UpdateUserProfileRequest request) {
         log.info("📝 Updating user profile for email: {}", email);
+        log.info("🔍 Request idCard value: '{}', length: {}",
+                request.getIdCard(),
+                request.getIdCard() != null ? request.getIdCard().length() : "null");
+        log.info("🔍 Request data - firstName: {}, lastName: {}, email: {}, phone: {}, idCard: {}",
+                request.getFirstName(), request.getLastName(), request.getEmail(),
+                request.getPhone(), request.getIdCard());
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
 
+        log.info("🔍 Current user data - firstName: {}, lastName: {}, email: {}, phone: {}, idCard: {}",
+                user.getFirstName(), user.getLastName(), user.getEmail(),
+                user.getPhone(), user.getIdCard());
+
         // Validate email uniqueness if changed
-        if (!user.getEmail().equals(request.getEmail()) &&
+        if (request.getEmail() != null && !request.getEmail().trim().isEmpty() &&
+                !user.getEmail().equals(request.getEmail()) &&
                 userRepository.existsByEmailAndIdNot(request.getEmail(), user.getId())) {
             throw new IllegalArgumentException("Email đã được sử dụng bởi người dùng khác");
         }
 
         // Validate ID card uniqueness if provided and changed
-        if (request.getIdCard() != null && !request.getIdCard().equals(user.getIdCard()) &&
+        if (request.getIdCard() != null && !request.getIdCard().trim().isEmpty() &&
+                !request.getIdCard().equals(user.getIdCard()) &&
                 userRepository.existsByIdCardAndIdNot(request.getIdCard(), user.getId())) {
             throw new IllegalArgumentException("Số CMND/CCCD đã được sử dụng bởi người dùng khác");
         }
 
-        // Update user fields
-        if (request.getFirstName() != null) {
-            user.setFirstName(request.getFirstName());
+        // Update user fields only if they are provided and not empty
+        if (request.getFirstName() != null && !request.getFirstName().trim().isEmpty()) {
+            user.setFirstName(request.getFirstName().trim());
+            log.info("✅ Updated firstName to: {}", request.getFirstName().trim());
         }
-        if (request.getLastName() != null) {
-            user.setLastName(request.getLastName());
+        if (request.getLastName() != null && !request.getLastName().trim().isEmpty()) {
+            user.setLastName(request.getLastName().trim());
+            log.info("✅ Updated lastName to: {}", request.getLastName().trim());
         }
-        if (request.getEmail() != null) {
-            user.setEmail(request.getEmail());
+        if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
+            user.setEmail(request.getEmail().trim());
+            log.info("✅ Updated email to: {}", request.getEmail().trim());
         }
-        if (request.getPhone() != null) {
-            user.setPhone(request.getPhone());
+        if (request.getPhone() != null && !request.getPhone().trim().isEmpty()) {
+            user.setPhone(request.getPhone().trim());
+            log.info("✅ Updated phone to: {}", request.getPhone().trim());
         }
-        if (request.getIdCard() != null) {
-            user.setIdCard(request.getIdCard());
+        if (request.getIdCard() != null && !request.getIdCard().trim().isEmpty()) {
+            user.setIdCard(request.getIdCard().trim());
+            log.info("✅ Updated idCard to: {}", request.getIdCard().trim());
+        } else {
+            log.info("🔍 IdCard not updated - request.getIdCard(): {}, isEmpty: {}",
+                    request.getIdCard(),
+                    request.getIdCard() != null ? request.getIdCard().trim().isEmpty() : "null");
         }
 
+        log.info("🔍 Before save - firstName: {}, lastName: {}, email: {}, phone: {}, idCard: {}",
+                user.getFirstName(), user.getLastName(), user.getEmail(),
+                user.getPhone(), user.getIdCard());
+
         User updatedUser = userRepository.save(user);
+
+        log.info("🔍 After save - firstName: {}, lastName: {}, email: {}, phone: {}, idCard: {}",
+                updatedUser.getFirstName(), updatedUser.getLastName(), updatedUser.getEmail(),
+                updatedUser.getPhone(), updatedUser.getIdCard());
+
         log.info("✅ User profile updated successfully for email: {}", email);
 
         return UserProfileResponse.fromEntity(updatedUser);
+    }
+
+    // ===== NEW PROFILE APIs =====
+
+    public Page<BookingHistoryResponse> getBookingHistory(String email, Pageable pageable) {
+        log.info("🎫 Getting booking history for email: {}", email);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
+
+        Page<Ticket> tickets = ticketRepository.findByUserIdOrderByCreatedAtDesc(user.getId(), pageable);
+
+        log.info("✅ Found {} tickets for user: {}", tickets.getTotalElements(), email);
+        return tickets.map(BookingHistoryResponse::fromEntity);
+    }
+
+    public Page<PaymentHistoryResponse> getPaymentHistory(String email, Pageable pageable) {
+        log.info("💳 Getting payment history for email: {}", email);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
+
+        Page<Payment> payments = paymentRepository.findByUserIdOrderByCreatedAtDesc(user.getId(), pageable);
+
+        log.info("✅ Found {} payments for user: {}", payments.getTotalElements(), email);
+        return payments.map(PaymentHistoryResponse::fromEntity);
+    }
+
+    public List<LoginSessionResponse> getLoginSessions(String email) {
+        log.info("🔐 Getting login sessions for email: {}", email);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
+
+        // Mock data for now - in real implementation, you would store session info
+        List<LoginSessionResponse> sessions = Arrays.asList(
+                LoginSessionResponse.createMockSession("sess_001", "Chrome on Windows", "192.168.1.100"),
+                LoginSessionResponse.createMockSession("sess_002", "Mobile App on Android", "192.168.1.101"),
+                LoginSessionResponse.createMockSession("sess_003", "Safari on MacOS", "192.168.1.102"));
+
+        log.info("✅ Found {} active sessions for user: {}", sessions.size(), email);
+        return sessions;
+    }
+
+    @Transactional
+    public ApiResponse<Void> changePassword(String email, ChangePasswordRequest request) {
+        log.info("🔒 Changing password for email: {}", email);
+
+        // Validate confirm password
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new IllegalArgumentException("Mật khẩu xác nhận không khớp");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
+
+        // Verify current password
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Mật khẩu hiện tại không đúng");
+        }
+
+        // Update password
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+
+        // Send email notification
+        try {
+            emailService.sendPasswordChangeNotification(user.getEmail(),
+                    user.getFirstName() + " " + user.getLastName());
+            log.info("📧 Password change notification sent to: {}", email);
+        } catch (Exception e) {
+            log.warn("⚠️ Failed to send password change notification: {}", e.getMessage());
+        }
+
+        log.info("✅ Password changed successfully for user: {}", email);
+        return ApiResponse.success("Đổi mật khẩu thành công. Email thông báo đã được gửi.");
     }
 
     @Transactional

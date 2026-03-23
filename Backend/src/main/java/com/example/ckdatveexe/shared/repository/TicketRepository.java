@@ -91,4 +91,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Integer>, JpaSpe
 
         // Find tickets by schedule, bus and status
         List<Ticket> findByScheduleIdAndSeatBusIdAndStatus(Integer scheduleId, Integer busId, TicketStatus status);
+
+        // Find by user with pagination
+        org.springframework.data.domain.Page<Ticket> findByUserIdOrderByCreatedAtDesc(Integer userId,
+                        org.springframework.data.domain.Pageable pageable);
 }
