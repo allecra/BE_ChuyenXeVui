@@ -1,0 +1,16 @@
+### Test Bus Company Registration API
+POST http://localhost:8080/api/public/bus-company/register
+Content-Type: application/json
+
+{
+  "companyName": "Nhà xe Test",
+  "email": "test@example.com",
+  "phoneNumber": "0123456789",
+  "image": "https://example.com/logo.jpg",
+  "descriptions": "Nhà xe test mô tả",
+  "businessLicense": "0123456789",
+  "address": "123 Test Street"
+}
+
+### Test Registration Status Check
+GET http://localhost:8080/api/public/bus-company/registration-status/test@example.com

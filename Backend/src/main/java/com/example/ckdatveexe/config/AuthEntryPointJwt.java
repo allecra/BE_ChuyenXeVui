@@ -1,6 +1,7 @@
 package com.example.ckdatveexe.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,31 +22,38 @@ import java.util.Map;
 public class AuthEntryPointJwt implements AuthenticationEntryPoint {
 
     @Override
-    public void commence(HttpServletRequest request, HttpServletResponse response,
-            AuthenticationException authException) throws IOException, ServletException {
+    public void commence(HttpServletRequest request,
+            HttpServletResponse response,
+            AuthenticationException authException) throws IOException {
 
-        String requestPath = request.getRequestURI();
-        String method = request.getMethod();
+        String path = request.getRequestURI();
 
-        log.error("🚫 [AUTH ENTRY POINT] 401 Unauthorized - {} {}", method, requestPath);
-        log.error("🚫 [AUTH ENTRY POINT] Reason: {}", authException.getMessage());
-        log.error("🚫 [AUTH ENTRY POINT] Exception type: {}", authException.getClass().getSimpleName());
+        // ✅ BỎ QUA PUBLIC API
+        if (path.startsWith("/api/user/")
+                || path.startsWith("/auth/")
+                || path.startsWith("/public/")
+                || path.startsWith("/api-docs/")
+                || path.startsWith("/api/bus-company/registration/")
+                || path.startsWith("/swagger-ui/")) {
+
+            // 👉 KHÔNG trả 401
+            return;
+        }
+
+        log.error("🚫 Unauthorized: {}", path);
 
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 
-        final Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", LocalDateTime.now());
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
         body.put("status", 401);
         body.put("error", "Unauthorized");
-        body.put("message", "🔐 Yêu cầu phải có JWT token hợp lệ để truy cập API này");
-        body.put("path", requestPath);
-        body.put("method", method);
-        body.put("details", "Vui lòng đăng nhập và sử dụng token trong header: Authorization: Bearer <your-token>");
+        body.put("message", "JWT token không hợp lệ hoặc thiếu");
+        body.put("path", path);
 
-        final ObjectMapper mapper = new ObjectMapper();
-        mapper.writeValue(response.getOutputStream(), body);
-
-        log.info("📤 [AUTH ENTRY POINT] Sent 401 response to client");
+        new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .writeValue(response.getOutputStream(), body);
     }
 }

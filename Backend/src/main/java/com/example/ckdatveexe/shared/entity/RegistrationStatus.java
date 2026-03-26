@@ -1,7 +1,7 @@
 package com.example.ckdatveexe.shared.entity;
 
 public enum RegistrationStatus {
-    PENDING, // Chờ xác thực
-    APPROVED, // Đã được duyệt
+    PENDING, // Chờ xét duyệt
+    APPROVED, // Đã duyệt
     REJECTED // Bị từ chối
 }

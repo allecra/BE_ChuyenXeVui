@@ -46,4 +46,11 @@ public interface BusReviewRepository extends JpaRepository<BusReview, Integer> {
         @Query("SELECT br FROM BusReview br WHERE br.rating <= :maxRating ORDER BY br.createdAt DESC")
         Page<BusReview> findByRatingLessThanEqualOrderByCreatedAtDesc(@Param("maxRating") Integer maxRating,
                         Pageable pageable);
+
+        // Phương thức cho BusCompanyService
+        @Query("SELECT AVG(br.rating) FROM BusReview br WHERE br.bus.company.id = :companyId")
+        Double getAverageRatingByCompanyId(@Param("companyId") Integer companyId);
+
+        @Query("SELECT COUNT(br) FROM BusReview br WHERE br.bus.company.id = :companyId")
+        Integer countByBusCompanyId(@Param("companyId") Integer companyId);
 }

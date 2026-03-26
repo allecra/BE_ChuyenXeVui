@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -16,6 +17,8 @@ import java.util.Set;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = { "roles", "busCompany", "busReviews", "userConversations", "adminConversations",
+        "createdDiscountCodes", "tickets", "discountUsages", "messages", "payments" })
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

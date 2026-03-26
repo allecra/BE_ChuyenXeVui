@@ -35,4 +35,10 @@ public interface BusCompanyRegistrationRepository extends JpaRepository<BusCompa
         boolean existsByEmailIgnoreCase(String email);
 
         boolean existsByCompanyNameIgnoreCase(String companyName);
+
+        // Tìm theo email
+        Optional<BusCompanyRegistration> findByEmail(String email);
+
+        // Kiểm tra email tồn tại
+        boolean existsByEmail(String email);
 }

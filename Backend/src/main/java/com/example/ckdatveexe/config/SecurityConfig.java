@@ -64,20 +64,22 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Chỉ cho phép authentication endpoints và documentation
+                        // Public endpoints - no authentication required
+                        .requestMatchers("/api/user/bus-companies/**").permitAll()
+                        .requestMatchers("/api/bus-company/registration/**").permitAll()
+                        .requestMatchers("/api/schedules/**").permitAll()
+                        .requestMatchers("/api/routes/**").permitAll()
+                        .requestMatchers("/api/reviews/**").permitAll()
+                        .requestMatchers("/api/payment/**").permitAll()
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/public/**").permitAll() // Chỉ cho đăng ký nhà xe
+                        .requestMatchers("/public/**").permitAll()
                         .requestMatchers("/api-docs/**").permitAll()
                         .requestMatchers("/swagger-ui/**").permitAll()
-                        .requestMatchers("/swagger-ui.html").permitAll()
                         .requestMatchers("/v3/api-docs/**").permitAll()
-                        // TẤT CẢ API KHÁC ĐỀU YÊU CẦU AUTHENTICATION
-                        .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers("/api/bus-company/**").hasAuthority("ROLE_BUS_COMPANY")
-                        .requestMatchers("/api/user/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN", "ROLE_BUS_COMPANY")
-                        .requestMatchers("/user/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN", "ROLE_BUS_COMPANY")
-                        .requestMatchers("/media/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN", "ROLE_BUS_COMPANY")
+                        .requestMatchers("/api/profile/health").permitAll()
+                        // Protected user endpoints - require authentication
+                        .requestMatchers("/api/profile/**").authenticated()
+                        // All other requests require authentication
                         .anyRequest().authenticated());
 
         http.authenticationProvider(authenticationProvider());

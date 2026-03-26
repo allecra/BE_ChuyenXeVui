@@ -93,7 +93,7 @@ public class GlobalExceptionHandler {
     private ResponseEntity<Map<String, Object>> buildErrorResponse(
             HttpStatus status, String message, WebRequest request) {
         Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", LocalDateTime.now());
+        body.put("timestamp", LocalDateTime.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME));
         body.put("status", status.value());
         body.put("error", status.getReasonPhrase());
         body.put("message", message);

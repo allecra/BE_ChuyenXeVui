@@ -1,0 +1,9 @@
+{
+  "company_name": "Test Bus Company",
+  "email": "test@buscompany.com",
+  "phone_number": "0123456789",
+  "image": "https://example.com/logo.jpg",
+  "descriptions": "Test bus company description",
+  "business_license": "BL123456",
+  "address": "123 Test Street, Test City"
+}

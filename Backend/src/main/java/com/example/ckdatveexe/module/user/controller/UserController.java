@@ -20,7 +20,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
-@RequestMapping("/user/profile")
+@RequestMapping("/api/profile")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "User Profile", description = "APIs quản lý thông tin cá nhân người dùng")
@@ -28,22 +28,30 @@ public class UserController {
 
     private final UserService userService;
 
+    @GetMapping("/health")
+    @Operation(summary = "Health check for user profile")
+    public ResponseEntity<String> healthCheck() {
+        System.out.println("🔍 [HEALTH] UserController health check called!");
+        log.info("🔍 [HEALTH] UserController health check called!");
+        return ResponseEntity.ok().body("UserController is working!");
+    }
+
     @GetMapping
     @PreAuthorize("hasRole('USER')")
     @Operation(summary = "Lấy thông tin cá nhân", description = "Lấy thông tin cá nhân của người dùng đang đăng nhập")
     public ResponseEntity<ApiResponse<UserProfileResponse>> getUserProfile(Authentication authentication) {
         try {
             String email = authentication.getName();
-            log.info("👤 [GET] /user/profile - Email: {}", email);
+            log.info("👤 [GET] /api/profile - Email: {}", email);
 
             UserProfileResponse profile = userService.getUserProfileByEmail(email);
 
-            log.info("✅ [GET] /user/profile - Success for email: {}", email);
+            log.info("✅ [GET] /api/profile - Success for email: {}", email);
             return ResponseEntity.ok(ApiResponse.success(
                     "Lấy thông tin cá nhân thành công",
                     profile));
         } catch (Exception e) {
-            log.error("💥 [GET] /user/profile - Error: {}", e.getMessage());
+            log.error("💥 [GET] /api/profile - Error: {}", e.getMessage());
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -56,7 +64,7 @@ public class UserController {
             Authentication authentication) {
         try {
             String email = authentication.getName();
-            log.info("📝 [PUT] /user/profile - Email: {} updating profile", email);
+            log.info("📝 [PUT] /api/profile - Email: {} updating profile", email);
 
             // Validate that at least one field is provided for update
             if ((request.getFirstName() == null || request.getFirstName().trim().isEmpty()) &&
@@ -70,12 +78,12 @@ public class UserController {
 
             UserProfileResponse updatedProfile = userService.updateUserProfileByEmail(email, request);
 
-            log.info("✅ [PUT] /user/profile - Success for email: {}", email);
+            log.info("✅ [PUT] /api/profile - Success for email: {}", email);
             return ResponseEntity.ok(ApiResponse.success(
                     "Cập nhật thông tin cá nhân thành công",
                     updatedProfile));
         } catch (Exception e) {
-            log.error("💥 [PUT] /user/profile - Error: {}", e.getMessage());
+            log.error("💥 [PUT] /api/profile - Error: {}", e.getMessage());
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -86,16 +94,16 @@ public class UserController {
     public ResponseEntity<ApiResponse<UserProfileResponse>> getProfileForBooking(Authentication authentication) {
         try {
             String email = authentication.getName();
-            log.info("🎫 [GET] /user/profile/for-booking - Email: {}", email);
+            log.info("🎫 [GET] /api/profile/for-booking - Email: {}", email);
 
             UserProfileResponse profile = userService.getUserProfileByEmail(email);
 
-            log.info("✅ [GET] /user/profile/for-booking - Success for email: {}", email);
+            log.info("✅ [GET] /api/profile/for-booking - Success for email: {}", email);
             return ResponseEntity.ok(ApiResponse.success(
                     "Lấy thông tin để đặt vé thành công",
                     profile));
         } catch (Exception e) {
-            log.error("💥 [GET] /user/profile/for-booking - Error: {}", e.getMessage());
+            log.error("💥 [GET] /api/profile/for-booking - Error: {}", e.getMessage());
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -111,7 +119,7 @@ public class UserController {
             @RequestParam(defaultValue = "desc") String sortDir) {
         try {
             String email = authentication.getName();
-            log.info("🎫 [GET] /user/profile/booking-history - Email: {}", email);
+            log.info("🎫 [GET] /api/profile/booking-history - Email: {}", email);
 
             Sort sort = sortDir.equalsIgnoreCase("desc")
                     ? Sort.by(sortBy).descending()
@@ -120,12 +128,12 @@ public class UserController {
 
             Page<BookingHistoryResponse> bookingHistory = userService.getBookingHistory(email, pageable);
 
-            log.info("✅ [GET] /user/profile/booking-history - Success for email: {}", email);
+            log.info("✅ [GET] /api/profile/booking-history - Success for email: {}", email);
             return ResponseEntity.ok(ApiResponse.success(
                     "Lấy lịch sử đặt vé thành công",
                     bookingHistory));
         } catch (Exception e) {
-            log.error("💥 [GET] /user/profile/booking-history - Error: {}", e.getMessage());
+            log.error("💥 [GET] /api/profile/booking-history - Error: {}", e.getMessage());
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -141,7 +149,7 @@ public class UserController {
             @RequestParam(defaultValue = "desc") String sortDir) {
         try {
             String email = authentication.getName();
-            log.info("💳 [GET] /user/profile/payment-history - Email: {}", email);
+            log.info("💳 [GET] /api/profile/payment-history - Email: {}", email);
 
             Sort sort = sortDir.equalsIgnoreCase("desc")
                     ? Sort.by(sortBy).descending()
@@ -150,12 +158,12 @@ public class UserController {
 
             Page<PaymentHistoryResponse> paymentHistory = userService.getPaymentHistory(email, pageable);
 
-            log.info("✅ [GET] /user/profile/payment-history - Success for email: {}", email);
+            log.info("✅ [GET] /api/profile/payment-history - Success for email: {}", email);
             return ResponseEntity.ok(ApiResponse.success(
                     "Lấy lịch sử thanh toán thành công",
                     paymentHistory));
         } catch (Exception e) {
-            log.error("💥 [GET] /user/profile/payment-history - Error: {}", e.getMessage());
+            log.error("💥 [GET] /api/profile/payment-history - Error: {}", e.getMessage());
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -166,16 +174,16 @@ public class UserController {
     public ResponseEntity<ApiResponse<List<LoginSessionResponse>>> getLoginSessions(Authentication authentication) {
         try {
             String email = authentication.getName();
-            log.info("🔐 [GET] /user/profile/login-sessions - Email: {}", email);
+            log.info("🔐 [GET] /api/profile/login-sessions - Email: {}", email);
 
             List<LoginSessionResponse> sessions = userService.getLoginSessions(email);
 
-            log.info("✅ [GET] /user/profile/login-sessions - Success for email: {}", email);
+            log.info("✅ [GET] /api/profile/login-sessions - Success for email: {}", email);
             return ResponseEntity.ok(ApiResponse.success(
                     "Lấy danh sách phiên đăng nhập thành công",
                     sessions));
         } catch (Exception e) {
-            log.error("💥 [GET] /user/profile/login-sessions - Error: {}", e.getMessage());
+            log.error("💥 [GET] /api/profile/login-sessions - Error: {}", e.getMessage());
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -188,7 +196,7 @@ public class UserController {
             Authentication authentication) {
         try {
             String email = authentication.getName();
-            log.info("🔒 [POST] /user/profile/change-password - Email: {}", email);
+            log.info("🔒 [POST] /api/profile/change-password - Email: {}", email);
             log.info("🔍 Request data - currentPassword: {}, newPassword: {}, confirmPassword: {}",
                     request.getCurrentPassword() != null ? "***PROVIDED***" : "NULL",
                     request.getNewPassword() != null ? "***PROVIDED***" : "NULL",
@@ -214,10 +222,10 @@ public class UserController {
 
             ApiResponse<Void> result = userService.changePassword(email, request);
 
-            log.info("✅ [POST] /user/profile/change-password - Success for email: {}", email);
+            log.info("✅ [POST] /api/profile/change-password - Success for email: {}", email);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            log.error("💥 [POST] /user/profile/change-password - Error: {}", e.getMessage());
+            log.error("💥 [POST] /api/profile/change-password - Error: {}", e.getMessage());
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
