@@ -1,0 +1,30 @@
+### Test Bus Company Registration (Should work without auth)
+POST http://localhost:8080/api/bus-company/registration/register
+Content-Type: application/json
+
+{
+  "companyName": "Test Bus Company",
+  "email": "test@buscompany.com",
+  "phone": "0123456789",
+  "address": "123 Test Street",
+  "description": "Test bus company for API testing",
+  "password": "TestPassword123!"
+}
+
+### Test Get All Partner Bus Companies (Should work without auth)
+GET http://localhost:8080/api/user/bus-companies
+
+### Test Get Bus Company Detail (Should work without auth)
+GET http://localhost:8080/api/user/bus-companies/1
+
+### Test Registration Status Check (Should work without auth)
+GET http://localhost:8080/api/bus-company/registration/status?email=test@buscompany.com
+
+### Test Public Schedules (Should work without auth)
+GET http://localhost:8080/api/schedules
+
+### Test Public Routes (Should work without auth)
+GET http://localhost:8080/api/routes
+
+### Test Public Reviews (Should work without auth)
+GET http://localhost:8080/api/reviews

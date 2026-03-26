@@ -4,6 +4,7 @@ import com.example.ckdatveexe.exception.ResourceNotFoundException;
 import com.example.ckdatveexe.module.schedule.dto.ScheduleResponse;
 import com.example.ckdatveexe.module.schedule.dto.ScheduleSearchRequest;
 import com.example.ckdatveexe.module.schedule.dto.ScheduleBusResponse;
+import com.example.ckdatveexe.module.schedule.dto.PopularRouteResponse;
 import com.example.ckdatveexe.module.schedule.service.ScheduleService;
 import com.example.ckdatveexe.module.schedule.service.ScheduleBusService;
 import com.example.ckdatveexe.shared.dto.ApiResponse;
@@ -220,6 +221,42 @@ public class ScheduleUserController {
                     .body(ApiResponse.<List<ScheduleBusResponse>>builder()
                             .success(false)
                             .message("Lỗi hệ thống khi lấy danh sách xe trong lịch trình")
+                            .build());
+        }
+    }
+
+    @GetMapping("/popular-routes")
+    @Operation(summary = "Tuyến đường phổ biến", description = "Lấy danh sách tuyến đường phổ biến dựa trên số lượng booking")
+    public ResponseEntity<ApiResponse<List<PopularRouteResponse>>> getPopularRoutes(
+            @RequestParam(defaultValue = "10") int limit) {
+
+        log.info("👤 [USER] GET /api/schedules/popular-routes - Get top {} popular routes", limit);
+
+        try {
+            // Validate limit
+            if (limit <= 0 || limit > 50) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.<List<PopularRouteResponse>>builder()
+                                .success(false)
+                                .message("Giới hạn phải từ 1 đến 50")
+                                .build());
+            }
+
+            List<PopularRouteResponse> popularRoutes = scheduleService.getPopularRoutes(limit);
+
+            log.info("✅ [USER] 200 OK - Retrieved {} popular routes", popularRoutes.size());
+            return ResponseEntity.ok(ApiResponse.<List<PopularRouteResponse>>builder()
+                    .success(true)
+                    .message("Lấy danh sách tuyến đường phổ biến thành công")
+                    .data(popularRoutes)
+                    .build());
+
+        } catch (Exception e) {
+            log.error("💥 [USER] 500 INTERNAL_SERVER_ERROR - Failed to get popular routes", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.<List<PopularRouteResponse>>builder()
+                            .success(false)
+                            .message("Lỗi hệ thống khi lấy danh sách tuyến đường phổ biến")
                             .build());
         }
     }

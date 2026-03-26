@@ -311,4 +311,172 @@ public class EmailService {
                 companyName, blockMessage,
                 java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
     }
+
+    // Phương thức cho Bus Company Registration
+    public void sendRegistrationConfirmationEmail(String toEmail, String companyName) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(toEmail);
+            helper.setSubject("Xác nhận đăng ký nhà xe - " + companyName);
+            helper.setText(buildRegistrationConfirmationEmailContent(companyName), true);
+
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            throw new RuntimeException("Không thể gửi email xác nhận đăng ký", e);
+        }
+    }
+
+    public void sendApprovalEmail(String toEmail, String companyName, boolean approved, String adminNotes) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(toEmail);
+
+            if (approved) {
+                helper.setSubject("Đơn đăng ký nhà xe được duyệt - " + companyName);
+                helper.setText(buildApprovalEmailContent(companyName, adminNotes), true);
+            } else {
+                helper.setSubject("Đơn đăng ký nhà xe bị từ chối - " + companyName);
+                helper.setText(buildRejectionEmailContent(companyName, adminNotes), true);
+            }
+
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            throw new RuntimeException("Không thể gửi email thông báo duyệt", e);
+        }
+    }
+
+    public void sendCompanyAccountCreatedEmail(String toEmail, String companyName, String temporaryPassword) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(toEmail);
+            helper.setSubject("Tài khoản nhà xe đã được tạo - " + companyName);
+            helper.setText(buildCompanyAccountCreatedEmailContent(companyName, temporaryPassword), true);
+
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            throw new RuntimeException("Không thể gửi email tạo tài khoản", e);
+        }
+    }
+
+    private String buildRegistrationConfirmationEmailContent(String companyName) {
+        return """
+                <html>
+                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <h2 style="color: #2c5aa0;">Xác nhận đăng ký nhà xe</h2>
+                        <p>Xin chào <strong>%s</strong>,</p>
+                        <p>Chúng tôi đã nhận được đơn đăng ký nhà xe của bạn.</p>
+                        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                            <p><strong>Thông tin đăng ký:</strong></p>
+                            <ul>
+                                <li>Tên nhà xe: %s</li>
+                                <li>Trạng thái: Đang chờ xét duyệt</li>
+                                <li>Thời gian xử lý: 1-3 ngày làm việc</li>
+                            </ul>
+                        </div>
+                        <p>Chúng tôi sẽ xem xét đơn đăng ký và gửi thông báo kết quả qua email này.</p>
+                        <p>Cảm ơn bạn đã tin tưởng dịch vụ của chúng tôi!</p>
+                        <hr style="margin: 30px 0;">
+                        <p style="font-size: 12px; color: #666;">
+                            Email này được gửi tự động, vui lòng không trả lời.
+                        </p>
+                    </div>
+                </body>
+                </html>
+                """.formatted(companyName, companyName);
+    }
+
+    private String buildApprovalEmailContent(String companyName, String adminNotes) {
+        return """
+                <html>
+                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <h2 style="color: #28a745;">Đơn đăng ký được duyệt!</h2>
+                        <p>Xin chào <strong>%s</strong>,</p>
+                        <p>Chúc mừng! Đơn đăng ký nhà xe của bạn đã được duyệt.</p>
+                        <div style="background-color: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #28a745;">
+                            <p><strong>Trạng thái:</strong> Đã duyệt ✅</p>
+                            %s
+                        </div>
+                        <p>Tài khoản quản lý nhà xe đã được tạo và thông tin đăng nhập sẽ được gửi trong email riêng.</p>
+                        <p>Bạn có thể bắt đầu sử dụng hệ thống để quản lý nhà xe của mình.</p>
+                        <p>Cảm ơn bạn đã tham gia cùng chúng tôi!</p>
+                        <hr style="margin: 30px 0;">
+                        <p style="font-size: 12px; color: #666;">
+                            Email này được gửi tự động, vui lòng không trả lời.
+                        </p>
+                    </div>
+                </body>
+                </html>
+                """
+                .formatted(companyName,
+                        adminNotes != null && !adminNotes.trim().isEmpty()
+                                ? "<p><strong>Ghi chú từ admin:</strong> " + adminNotes + "</p>"
+                                : "");
+    }
+
+    private String buildRejectionEmailContent(String companyName, String adminNotes) {
+        return """
+                <html>
+                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <h2 style="color: #dc3545;">Đơn đăng ký bị từ chối</h2>
+                        <p>Xin chào <strong>%s</strong>,</p>
+                        <p>Rất tiếc, đơn đăng ký nhà xe của bạn không được duyệt.</p>
+                        <div style="background-color: #f8d7da; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #dc3545;">
+                            <p><strong>Trạng thái:</strong> Bị từ chối ❌</p>
+                            %s
+                        </div>
+                        <p>Bạn có thể chỉnh sửa thông tin và đăng ký lại sau khi khắc phục các vấn đề được nêu.</p>
+                        <p>Nếu có thắc mắc, vui lòng liên hệ với chúng tôi để được hỗ trợ.</p>
+                        <hr style="margin: 30px 0;">
+                        <p style="font-size: 12px; color: #666;">
+                            Email này được gửi tự động, vui lòng không trả lời.
+                        </p>
+                    </div>
+                </body>
+                </html>
+                """
+                .formatted(companyName,
+                        adminNotes != null && !adminNotes.trim().isEmpty()
+                                ? "<p><strong>Lý do từ chối:</strong> " + adminNotes + "</p>"
+                                : "");
+    }
+
+    private String buildCompanyAccountCreatedEmailContent(String companyName, String temporaryPassword) {
+        return """
+                <html>
+                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <h2 style="color: #2c5aa0;">Tài khoản nhà xe đã được tạo</h2>
+                        <p>Xin chào <strong>%s</strong>,</p>
+                        <p>Tài khoản quản lý nhà xe của bạn đã được tạo thành công!</p>
+                        <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ffc107;">
+                            <p><strong>Thông tin đăng nhập:</strong></p>
+                            <ul>
+                                <li><strong>Email:</strong> (email này)</li>
+                                <li><strong>Mật khẩu tạm thời:</strong> <code style="background-color: #f8f9fa; padding: 2px 4px; border-radius: 3px;">%s</code></li>
+                            </ul>
+                            <p style="color: #856404; margin-top: 10px;">
+                                ⚠️ <strong>Quan trọng:</strong> Vui lòng đổi mật khẩu ngay sau khi đăng nhập lần đầu để bảo mật tài khoản.
+                            </p>
+                        </div>
+                        <p>Bạn có thể đăng nhập vào hệ thống để bắt đầu quản lý nhà xe của mình.</p>
+                        <p>Chúc bạn kinh doanh thành công!</p>
+                        <hr style="margin: 30px 0;">
+                        <p style="font-size: 12px; color: #666;">
+                            Email này được gửi tự động, vui lòng không trả lời.
+                        </p>
+                    </div>
+                </body>
+                </html>
+                """
+                .formatted(companyName, temporaryPassword);
+    }
 }

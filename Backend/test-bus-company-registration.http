@@ -1,0 +1,32 @@
+### Test Bus Company Registration
+POST http://localhost:8080/api/bus-company/registration/register
+Content-Type: application/json
+
+{
+  "company_name": "Nhà xe Test Company",
+  "email": "test@company.com",
+  "phone_number": "0123456789",
+  "image": "https://example.com/logo.jpg",
+  "descriptions": "Mô tả về công ty",
+  "business_license": "123456789",
+  "address": "123 Đường ABC, Quận 1, TP.HCM"
+}
+
+### Test Bus Company Registration - Minimal Required Fields
+POST http://localhost:8080/api/bus-company/registration/register
+Content-Type: application/json
+
+{
+  "company_name": "Nhà xe Minimal Test",
+  "email": "minimal@test.com",
+  "phone_number": "0987654321"
+}
+
+### Test Bus Company Registration - Invalid Data (Missing Required Fields)
+POST http://localhost:8080/api/bus-company/registration/register
+Content-Type: application/json
+
+{
+  "image": "https://example.com/logo.jpg",
+  "descriptions": "Missing required fields"
+}

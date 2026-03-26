@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -628,6 +629,33 @@ public class ScheduleService {
     private void notifyPassengersOfCancellation(Integer scheduleId, String reason) {
         // TODO: Implement email/SMS notification to passengers
         log.info("Notifying passengers of schedule {} cancellation: {}", scheduleId, reason);
+    }
+
+    /**
+     * Get popular routes based on booking count
+     */
+    public List<PopularRouteResponse> getPopularRoutes(int limit) {
+        log.info("📊 [SCHEDULE] Getting top {} popular routes based on booking count", limit);
+
+        List<Object[]> results = scheduleRepository.findPopularRoutesByBookingCount(limit);
+
+        List<PopularRouteResponse> popularRoutes = results.stream()
+                .map(result -> PopularRouteResponse.builder()
+                        .routeId((Integer) result[0])
+                        .routeName((String) result[1])
+                        .startStationName((String) result[2])
+                        .endStationName((String) result[3])
+                        .startProvince((String) result[4])
+                        .endProvince((String) result[5])
+                        .totalBookings((Long) result[6])
+                        .averagePrice((Double) result[7])
+                        .totalSchedules((Integer) result[8])
+                        .description((String) result[9])
+                        .build())
+                .collect(Collectors.toList());
+
+        log.info("✅ [SCHEDULE] Found {} popular routes", popularRoutes.size());
+        return popularRoutes;
     }
 
     private void createRefundForCancelledTicket(Ticket ticket, BigDecimal refundAmount) {
