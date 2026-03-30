@@ -50,9 +50,11 @@ public class PostAdminController {
             @RequestBody PostCreateRequest request,
             Authentication auth) {
 
+        String role = auth.getAuthorities().iterator().next().getAuthority();
+
         return ResponseEntity.ok(
                 ApiResponse.success("Created",
-                        postService.create(request, auth.getName()))
+                        postService.create(request, auth.getName(), role))
         );
     }
 
@@ -66,6 +68,31 @@ public class PostAdminController {
         return ResponseEntity.ok(
                 ApiResponse.success("Updated",
                         postService.update(id, request))
+        );
+    }
+
+    @PutMapping("/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse> approve(
+            @PathVariable Integer id,
+            Authentication auth) {
+
+        return ResponseEntity.ok(
+                ApiResponse.success("Duyệt bài thành công",
+                        postService.approve(id, auth.getName()))
+        );
+    }
+
+    @PutMapping("/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse> reject(
+            @PathVariable Integer id,
+            @RequestParam String reason,
+            Authentication auth) {
+
+        return ResponseEntity.ok(
+                ApiResponse.success("Từ chối bài viết",
+                        postService.reject(id, reason, auth.getName()))
         );
     }
 
