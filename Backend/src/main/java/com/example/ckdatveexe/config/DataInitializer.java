@@ -27,6 +27,7 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) throws Exception {
         initializeRoles();
         initializeAdminUser();
+        initializeBusCompanyUser(); // 👈 thêm dòng này
     }
 
     private void initializeRoles() {
@@ -79,6 +80,37 @@ public class DataInitializer implements CommandLineRunner {
             }
         } catch (Exception e) {
             log.error("Failed to initialize admin user", e);
+        }
+    }
+
+    private void initializeBusCompanyUser() {
+        try {
+            String email = "bus@ckdatveexe.com";
+
+            if (userRepository.findByEmail(email).isEmpty()) {
+
+                Role busRole = roleRepository.findByRoleName(RoleName.ROLE_BUS_COMPANY)
+                        .orElseThrow(() -> new RuntimeException("ROLE_BUS_COMPANY not found"));
+
+                User user = new User();
+                user.setEmail(email);
+                user.setPassword(passwordEncoder.encode("MatKhau@123"));
+                user.setFirstName("Bus");
+                user.setLastName("Company");
+                user.setPhone("0987654321");
+                user.setStatus(UserStatus.ACTIVE);
+                user.setRoles(Set.of(busRole));
+
+                User saved = userRepository.save(user);
+
+                log.info("🚌 Created BUS_COMPANY user: {} with ID: {}", email, saved.getId());
+
+            } else {
+                log.info("BUS_COMPANY user already exists: {}", email);
+            }
+
+        } catch (Exception e) {
+            log.error("Failed to initialize BUS_COMPANY user", e);
         }
     }
 }

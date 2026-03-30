@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PostRepository extends JpaRepository<Post, Integer> {
 
+    Page<Post> findByCreatedBy(String createdBy, Pageable pageable);
     Page<Post> findByTitleContainingIgnoreCase(String title, Pageable pageable);
 
     Page<Post> findByStatus(PostStatus status, Pageable pageable);

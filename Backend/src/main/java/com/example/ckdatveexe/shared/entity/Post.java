@@ -30,6 +30,15 @@ public class Post {
 
     private LocalDateTime createdAt;
 
+    @Column(name = "approved_by")
+    private String approvedBy;
+
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
+    @Column(name = "reject_reason")
+    private String rejectReason;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
